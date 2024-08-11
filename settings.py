@@ -1,4 +1,5 @@
 import os
+import sys
 import customtkinter
 from tkinter import messagebox
 import threading
@@ -77,8 +78,23 @@ class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
 
 # Start the local server in a separate thread
 def start_local_server(app_instance):
-    with socketserver.TCPServer(("", PORT), lambda *args, **kwargs: AuthorizationCodeHandler(*args, app_instance=app_instance, **kwargs)) as httpd:
-        httpd.serve_forever()
+    # Save the original stdout and stderr
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    # Redirect stdout and stderr to suppress output
+    sys.stdout = open(os.devnull, 'w')
+    sys.stderr = open(os.devnull, 'w')
+    
+    try:
+        PORT = 8080
+        with socketserver.ThreadingTCPServer(("", PORT), lambda *args, **kwargs: AuthorizationCodeHandler(*args, app_instance=app_instance, **kwargs)) as httpd:
+            httpd.serve_forever()
+    finally:
+        # Restore the original stdout and stderr
+        sys.stdout.close()
+        sys.stderr.close()
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
 
 class App(customtkinter.CTk):
     def __init__(self):
