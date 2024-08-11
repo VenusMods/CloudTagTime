@@ -22,8 +22,6 @@ appearance_mode = config['Settings']['appearance_mode']
 customtkinter.set_appearance_mode(appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
 
-PORT = 8080
-
 class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, app_instance=None, **kwargs):
         self.app_instance = app_instance
