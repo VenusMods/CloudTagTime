@@ -33,6 +33,10 @@ Currently not tested, I made everything cross-platform compatable so correct me 
 
 * Note: If the gap is changed, it will take affect after the next ping, unless you restart the main file.
 
+# Tags
+* When you enter a word into the prompt, typing a comma, pressing space, or hitting enter will "create" a tag
+* After you have made the tags you want, press enter again, or hit the submit button.
+
 # Extra Features
 * Without typing anything in the prompt, press enter, and the log editor will open.
 * Enter a single double quote only (") to enter the same tags as last time.
