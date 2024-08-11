@@ -335,6 +335,10 @@ class App(customtkinter.CTk):
     def log_entries_to_file(self):
         # Get the tags and comments from the input fields
         tags = self.tagList
+        if len(tags) == 0:
+            tag = self.taginput.get()
+            self.tagList.append(tag)
+            tags = self.tagList
         self.tagList = []
         # comments = self.commentinput.get("1.0", customtkinter.END).strip()
         # if comments == "Comments...":
