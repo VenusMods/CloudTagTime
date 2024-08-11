@@ -110,7 +110,7 @@ async def loop_time(new_ping_time, now):
         now = int(time.time())
 
 
-# Asynchronous function to print "hello" at each ping time
+# Asynchronous function for pings
 async def tagtime_pings(start_time, gap):
     now = int(time.time())
     gap = int(config['Settings']['gap'])
