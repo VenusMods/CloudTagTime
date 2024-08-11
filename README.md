@@ -1,7 +1,7 @@
 # CloudTagTime
 "To determine how you spend your time, TagTime literally randomly samples you. At random times it pops up and asks what you're doing right at that moment. You answer with tags."
 
-![alt text](https://imgur.com/dL3fUjn)
+![Screenshot 2024-08-11 030727](https://github.com/user-attachments/assets/12ba5127-96fd-4bc0-baf5-3cf5b72af996)
 
 # Installation
 Windows:
@@ -23,13 +23,13 @@ Currently not tested, I made everything cross-platform compatable so correct me 
 * Save your log to the database after every ping
 
 # Log Viewer/Editor
-"log photo"
+![Screenshot 2024-08-11 031219](https://github.com/user-attachments/assets/8049516d-af14-437d-9d1c-50498729cda8)
 
 * Search by tags and be able to edit any of your logs with ease.
 * You should be able to transfer your logs from the old version to here, by just replacing log.log in the root folder of TagTime and renaming your file to log.log.
 
 # Settings
-"settings photo"
+![Screenshot 2024-08-11 030835](https://github.com/user-attachments/assets/789584d0-8287-4987-a6fa-8e0f018b5b84)
 
 * Note: If the gap is changed, it will take affect after the next ping, unless you restart the main file.
 
