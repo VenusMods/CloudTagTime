@@ -57,7 +57,7 @@ def next_ping_time(last_ping_time, gap):
 async def first_time_check(now, last_ping_time, gap):
     count = 0
     gap = int(config['Settings']['gap'])
-    print("Starting first time check.")
+    print("Starting first time check. Login to the Cloud in Settings To Sync Your Logs.")
     while (now > last_ping_time):
         last_ping_time, wait_time_seconds = next_ping_time(last_ping_time, gap)
         count += 1
