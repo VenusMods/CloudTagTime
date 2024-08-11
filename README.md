@@ -35,5 +35,5 @@ Currently not tested, I made everything cross-platform compatable so correct me 
 
 # Extra Features
 * Without typing anything in the prompt, press enter, and the log editor will open.
-* Enter a single double quote oly (") to enter the same tags as last time.
+* Enter a single double quote only (") to enter the same tags as last time.
 * Enter a question mark only (?) to open up the settings from the prompt.
