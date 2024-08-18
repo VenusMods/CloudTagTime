@@ -6,7 +6,7 @@
 # Installation
 Windows:
 --------
-0. Download and run TagTime_1.0_setup.exe
+0. Download and run TagTime_1.0_setup.exe from the Releases page
 
 Linux:
 ------
