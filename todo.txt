@@ -1,0 +1,2 @@
+-When installing for the first time, create an initial prompt so that users aren't "confused" about whether the app is installed or not
+-Beeminder integration
