@@ -1,2 +1,1 @@
 -Beeminder integration
--Add replace tag option in log editor
