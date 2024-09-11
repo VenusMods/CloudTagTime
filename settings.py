@@ -1,7 +1,6 @@
 import os
 import sys
 import customtkinter
-from tkinter import messagebox
 import threading
 import re
 from datetime import datetime
@@ -11,16 +10,17 @@ import requests
 import http.server
 import socketserver
 import urllib.parse
+from plyer import notification
+from PIL import Image
+import beeminder
+import json
 
-# Get the directory of the current script
-script_dir = os.path.dirname(os.path.realpath(__file__))
-
-config = configparser.ConfigParser()
-config.read(os.path.join(script_dir, 'config.ini'))
-appearance_mode = config['Settings']['appearance_mode']
-
-customtkinter.set_appearance_mode(appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
-customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS2
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, app_instance=None, **kwargs):
@@ -98,25 +98,46 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
-        # set paths
-        self.img_path = os.path.join(script_dir, "img")
-
         self.settings_menu()
 
     def settings_menu(self):
+
+            # Get the directory of the current script
+            self.script_dir = resource_path('')
+
+            # set paths
+            self.img_path = resource_path("img")
+
+            self.config = configparser.ConfigParser()
+            self.config.read(resource_path('config.ini'))
+            self.appearance_mode = self.config['Settings']['appearance_mode']
+
+            customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
+            customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
+
             # get refresh token
-            self.refresh_token = config['Cloud']['refresh_token']
+            self.refresh_token = self.config['Cloud']['refresh_token']
+
+            # get auth token
+            self.auth_token = self.config['Beeminder']['auth_token']
 
             # configure window
-            self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
+            self.iconbitmap(resource_path('img/tagtime.ico'))
             self.title("TagTime")
-            self.center_window(400, 400)
+            self.center_window(400, 630)
             # self.protocol("WM_DELETE_WINDOW", self.on_closing)
             self.font = customtkinter.CTkFont(family="Helvetica", size=12)
 
             # configure frame
             self.frame = customtkinter.CTkFrame(master=self, corner_radius=0)
             self.frame.pack(fill="both", expand=True)
+
+            # google image
+            self.google_img = customtkinter.CTkImage(light_image=Image.open(resource_path('img/google.png')), dark_image=Image.open(resource_path('img/google.png')), size=(50,50))
+
+            # google image label
+            self.google_logo = customtkinter.CTkLabel(self.frame, text="", image=self.google_img)
+            self.google_logo.pack(pady=5)
 
             # Sign In Frame
             self.sign_in_frame = customtkinter.CTkFrame(self.frame, width=400, height=50, fg_color="transparent")
@@ -129,27 +150,54 @@ class App(customtkinter.CTk):
                 self.email = self.get_user_info_from_token(self.refresh_token)
                 self.display_signed_in()
 
+            # beeminder image
+            self.beeminder_img = customtkinter.CTkImage(light_image=Image.open(resource_path('img/beeminder.png')), dark_image=Image.open(resource_path('img/beeminder.png')), size=(60,60))
+
+            # beeminder image label
+            self.beeminder_logo = customtkinter.CTkLabel(self.frame, text="", image=self.beeminder_img)
+            self.beeminder_logo.pack(pady=5)
+
+            # Beeeminder Sign In Frame
+            self.bee_sign_in_frame = customtkinter.CTkFrame(self.frame, width=400, height=50, fg_color="transparent")
+            # self.sign_in_frame.pack_propagate(0)
+            self.bee_sign_in_frame.pack(pady=5)
+
+            self.username = beeminder.get_username(self.auth_token)
+            if self.username:
+                self.display_beeminder_signed_in()
+            else:
+                self.display_beeminder_sign_in()
+
             # rest of the options frame
             self.restoptions_frame = customtkinter.CTkFrame(self.frame, fg_color="transparent")
             self.restoptions_frame.pack(fill="both", expand=True)
+
+            # task editor text
+            self.task_editor_text = customtkinter.CTkLabel(self.restoptions_frame, text=f"Task Editor")
+            self.task_editor_text.pack(pady = 5, padx = 10)
+
+            # task editor button
+            self.task_editor_button = customtkinter.CTkButton(master=self.restoptions_frame, text="Edit Tasks", width=100, command=self.on_edit_task_button,
+                                                        fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
+            self.task_editor_button.pack()
 
             # appearance mode text
             self.textbox = customtkinter.CTkLabel(self.restoptions_frame, text=f"Appearance Mode")
             self.textbox.pack(pady = 5, padx = 10)
 
-            appearance_mode = config['Settings']['appearance_mode']
+            self.appearance_mode = self.config['Settings']['appearance_mode']
 
             # appearance mode dropdown
             self.dropdown = customtkinter.CTkOptionMenu(master=self.restoptions_frame, values=["Dark", "Light"], width=120, command=self.on_dropdown_click, text_color=["black", "white"],
                                                         fg_color=["white", "grey22"], bg_color="transparent", button_color=["grey70", "grey26"], corner_radius=0, button_hover_color="grey35")
-            self.dropdown.set(appearance_mode)
+            self.dropdown.set(self.appearance_mode)
             self.dropdown.pack()
 
             # sound text
             self.sound_text = customtkinter.CTkLabel(self.restoptions_frame, text=f"Ping Sound")
             self.sound_text.pack(pady = 5, padx = 10)
 
-            sound = (config['Settings']['sound'].split('.'))[0]
+            sound = (self.config['Settings']['sound'].split('.'))[0]
 
             # sound dropdown
             self.sound_dropdown = customtkinter.CTkOptionMenu(master=self.restoptions_frame,
@@ -168,7 +216,7 @@ class App(customtkinter.CTk):
             self.tagcolor_text = customtkinter.CTkLabel(self.tagcolor_frame, text=f"Tag Color")
             self.tagcolor_text.pack(side="left", pady = 5, padx = [150, 10])
 
-            tagcolor = config['Settings']['tag_color']
+            tagcolor = self.config['Settings']['tag_color']
 
             # tag color display frame
             self.tagcolor_test_frame = customtkinter.CTkFrame(self.tagcolor_frame, corner_radius=15, width=40, height=24, fg_color=tagcolor, border_color=tagcolor, border_width=1)
@@ -191,7 +239,7 @@ class App(customtkinter.CTk):
             self.average_ping_time_text = customtkinter.CTkLabel(self.restoptions_frame, text=f"Average Ping Time (In Minutes)")
             self.average_ping_time_text.pack(pady = 5, padx = 10)
 
-            gap = int(config['Settings']['gap'])
+            gap = int(self.config['Settings']['gap'])
 
             # average ping time dropdown
             self.average_ping_time_dropdown = customtkinter.CTkOptionMenu(master=self.restoptions_frame,
@@ -215,6 +263,34 @@ class App(customtkinter.CTk):
         # self.minsize(width, height)
         # self.maxsize(width, height)   
 
+    def center_window_editgoals(self, width=400, height=490):
+        # Get the screen width and height
+        screen_width = self.editgoals_window.winfo_screenwidth()
+        screen_height = self.editgoals_window.winfo_screenheight()
+
+        # Calculate the position for the window to be centered
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+
+        # Set the geometry of the window
+        self.editgoals_window.geometry(f'{width}x{height}+{x}+{y}')
+        # self.minsize(width, height)
+        # self.maxsize(width, height)  
+
+    def center_window_edittasks(self, width=400, height=490):
+        # Get the screen width and height
+        screen_width = self.task_editor_window.winfo_screenwidth()
+        screen_height = self.task_editor_window.winfo_screenheight()
+
+        # Calculate the position for the window to be centered
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+
+        # Set the geometry of the window
+        self.task_editor_window.geometry(f'{width}x{height}+{x}+{y}')
+        # self.minsize(width, height)
+        # self.maxsize(width, height)  
+
     def on_quit_click(self):
         self.destroy()
 
@@ -222,26 +298,26 @@ class App(customtkinter.CTk):
         self.withdraw()
 
     def on_dropdown_click(self, value):
-        config['Settings']['appearance_mode'] = value
+        self.config['Settings']['appearance_mode'] = value
         customtkinter.set_appearance_mode(value)
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
-            config.write(configfile)
+        with open(resource_path('config.ini'), 'w') as configfile:
+            self.config.write(configfile)
 
     def on_sound_dropdown_click(self, value):
-        config['Settings']['sound'] = (value + ".wav")
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
-            config.write(configfile)
+        self.config['Settings']['sound'] = (value + ".wav")
+        with open(resource_path('config.ini'), 'w') as configfile:
+            self.config.write(configfile)
 
     def on_tagcolor_dropdown_click(self, value):
-        config['Settings']['tag_color'] = value
+        self.config['Settings']['tag_color'] = value
         self.tagcolor_test_frame.configure(fg_color=value, border_color=value)
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
-            config.write(configfile)
+        with open(resource_path('config.ini'), 'w') as configfile:
+            self.config.write(configfile)
 
     def on_gap_dropdown_click(self, value):
-        config['Settings']['gap'] = value
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
-            config.write(configfile)
+        self.config['Settings']['gap'] = value
+        with open(resource_path('config.ini'), 'w') as configfile:
+            self.config.write(configfile)
 
     # def minimize_window(self, hide=False):
     #         print("minimizing window")
@@ -283,19 +359,38 @@ class App(customtkinter.CTk):
 
         webbrowser.open("https://hello-bgfsl5zz5q-uc.a.run.app")
 
+    def sign_in_beeminder(self):
+
+        webbrowser.open("https://www.beeminder.com/api/v1/auth_token.json")
+
     def on_token_submit(self):
         refresh_token = self.refresh_token
         self.email = self.get_user_info_from_token(refresh_token)
         if self.email == "fail":
             print("Failed to get email.")
         else:
-            self.submit_token_frame.pack_forget()
             self.google_frame.pack_forget()
             self.display_signed_in()
             self.refresh_token = refresh_token
-            config['Cloud']['refresh_token'] = self.refresh_token
+            self.config['Cloud']['refresh_token'] = self.refresh_token
             self.on_config_save()
             self.show_alert()
+
+    def on_beeminder_token_submit(self):
+        auth_token = self.submit_token_input.get()
+        print(auth_token)
+        self.username = beeminder.get_username(auth_token)
+        if self.username:
+            print(self.username)
+            self.beeminder_frame.pack_forget()
+            self.submit_token_frame.pack_forget()
+            self.display_beeminder_signed_in()
+            self.auth_token = auth_token
+            self.config['Beeminder']['auth_token'] = self.auth_token
+            self.on_config_save()
+            self.show_beeminder_alert()
+        else:
+            print("failed")
 
     def get_user_info_from_token(self, refresh_token):
         if refresh_token != "NULL":
@@ -336,18 +431,33 @@ class App(customtkinter.CTk):
         
     def display_signed_in(self):
         self.signedin_text = customtkinter.CTkLabel(self.sign_in_frame, text=f"Signed in as: {self.email}")
-        self.signedin_text.pack(pady=5)
+        self.signedin_text.pack()
 
         self.signout_button = customtkinter.CTkButton(self.sign_in_frame, text="Logout", command=self.on_logout, width=80,
                                                       fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
-        self.signout_button.pack()
+        self.signout_button.pack(pady=5)
+
+    def display_beeminder_signed_in(self):
+        self.bee_signedin_text = customtkinter.CTkLabel(self.bee_sign_in_frame, text=f"Signed in as: {self.username}")
+        self.bee_signedin_text.pack()
+
+        self.bee_editgoals_button = customtkinter.CTkButton(self.bee_sign_in_frame, text="Edit Goals", command=self.on_beeminder_editgoals, width=80,
+                                                      fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
+        self.bee_editgoals_button.pack(side="left", pady=5, padx=(0, 5))
+
+        self.bee_signout_button = customtkinter.CTkButton(self.bee_sign_in_frame, text="Logout", command=self.on_beeminder_logout, width=80,
+                                                      fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
+        self.bee_signout_button.pack(side="left", pady=5, padx=(5, 0))
 
     def on_config_save(self):
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
-            config.write(configfile)
+        with open(resource_path('config.ini'), 'w') as configfile:
+            self.config.write(configfile)
 
     def show_alert(self):
-        messagebox.showinfo("Config Saved!", "You are now signed in. Your refresh token has been saved in config.ini. Your logs will automatically sync to the cloud from now on. If you want to extract your log from the database, go to Log Viewer.")
+        self.show_info_message("Signed In!", "You are now signed in. Your logs will automatically sync to the cloud from now on. If you want to extract your log from the database, go to Log Viewer.")
+
+    def show_beeminder_alert(self):
+        self.show_info_message("Signed In!", "You are now signed in to Beeminder. You can now point tags to a certain goal in settings!")
 
     def format_time(self, time_str):
         # Remove the weekday part
@@ -446,11 +556,22 @@ class App(customtkinter.CTk):
             self.restoptions_frame.pack_forget()
             self.display_sign_in_stuff()
             self.restoptions_frame.pack(fill="both", expand=True)
-            config['Cloud']['refresh_token'] = 'NULL'
+            self.config['Cloud']['refresh_token'] = 'NULL'
             self.on_config_save()
-            messagebox.showinfo("Success!", "Successfully logged out.")
+            self.show_info_message("Success!", "Successfully logged out.")
         else:
             print("Error logging out.")
+
+    def on_beeminder_logout(self):
+        self.config['Beeminder']['auth_token'] = "NULL"
+        self.on_config_save()
+        self.bee_signedin_text.pack_forget()
+        self.bee_signout_button.pack_forget()
+        self.bee_editgoals_button.pack_forget()
+        self.restoptions_frame.pack_forget()
+        self.display_beeminder_sign_in()
+        self.restoptions_frame.pack(fill="both", expand=True)
+        self.show_info_message("Success!", "Successfully logged out.")
 
     def display_sign_in_stuff(self):
         # Google Frame
@@ -467,25 +588,290 @@ class App(customtkinter.CTk):
                                                       fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
         self.sign_in_button.pack(side="left")
 
+    def show_info_message(self, title, message):
+        notification.notify(
+            title=title,
+            message=message,
+            app_name="TagTime",
+            app_icon=resource_path('img/tagtime.ico')
+        )
+
+    def display_beeminder_sign_in(self):
+        # Beeminder Frame
+        self.beeminder_frame = customtkinter.CTkFrame(self.bee_sign_in_frame, fg_color="transparent", height=40)
+        # self.beeminder_frame.pack_propagate(0)
+        self.beeminder_frame.pack(fill="y")
+
+        # Sign In Text
+        self.sign_in_text = customtkinter.CTkLabel(self.beeminder_frame, text="Sign in with Beeminder: ")
+        self.sign_in_text.pack(side="left", padx=5, pady=5)
+
+        # Sign in button
+        self.sign_in_button = customtkinter.CTkButton(self.beeminder_frame, text="Sign In", width=75, command=self.sign_in_beeminder,
+                                                      fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
+        self.sign_in_button.pack(side="left")
+
         # Submit Token Frame
-        self.submit_token_frame = customtkinter.CTkFrame(self.frame, width=400, height=60, fg_color="transparent")
+        self.submit_token_frame = customtkinter.CTkFrame(self.bee_sign_in_frame, width=215, height=60, fg_color="transparent")
         self.submit_token_frame.pack_propagate(0)
         self.submit_token_frame.pack(fill="both")
 
         # Submit Token Text
-        self.submit_token_text = customtkinter.CTkLabel(self.submit_token_frame, text="Enter Access Token:")
+        self.submit_token_text = customtkinter.CTkLabel(self.submit_token_frame, text="Enter Beeminder Auth Token:")
         self.submit_token_text.pack()
 
         # Submit Token Entry
-        self.submit_token_input = customtkinter.CTkEntry(self.submit_token_frame, width=350, corner_radius=0)
+        self.submit_token_input = customtkinter.CTkEntry(self.submit_token_frame, width=180, corner_radius=0)
         self.submit_token_input.pack(side="left", padx=5)
 
         # Submit Token button
-        self.submit_token_button = customtkinter.CTkButton(self.submit_token_frame, text="✓", font=("Helvetica", 25), width=25, height=20, corner_radius=0, command=self.on_token_submit,
+        self.submit_token_button = customtkinter.CTkButton(self.submit_token_frame, text="✓", font=("Helvetica", 25), width=25, height=20, corner_radius=0, command=self.on_beeminder_token_submit,
                                                            fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
         self.submit_token_button.pack(side="left")
 
-            
-if __name__ == "__main__":
+    def on_beeminder_editgoals(self):
+        self.goals = beeminder.get_all_goals(self.auth_token)
+        print(self.goals)
+        self.editgoals_window = customtkinter.CTkToplevel(self)
+        self.editgoals_window.after(250, lambda: self.editgoals_window.iconbitmap(resource_path('img/tagtime.ico')))
+        self.editgoals_window.title("Edit Goals")
+        self.center_window_editgoals(400, 300)
+        self.editgoals_window.attributes("-topmost", True)
+        self.editgoals_window.after(1000, lambda: self.editgoals_window.attributes("-topmost", False))  # Disable topmost after 1 second
+        self.editgoals_window.focus_force()
+
+        # Master frame
+        self.master_frame = customtkinter.CTkScrollableFrame(self.editgoals_window, corner_radius=0, width=400, height=250)
+        self.master_frame.pack()
+
+        # Save Tags Button
+        self.savegoal_button = customtkinter.CTkButton(self.editgoals_window, text="Save Tags", width=100, command=self.on_savegoal_button, corner_radius=0,
+                                                        fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
+        self.savegoal_button.pack(side="right", pady=5, padx=20)
+
+        goal_tags = self.config['Beeminder']['goal_tags']
+        print(goal_tags, " goal tags")
+        if goal_tags != "NULL":
+            goal_tags_json = json.loads(goal_tags)
+            print(goal_tags_json)
+
+        if self.goals:
+            for goal in self.goals:
+                # column frame
+                column_frame = customtkinter.CTkFrame(self.master_frame, fg_color="transparent", height=30, width=400, corner_radius=0)
+                column_frame.pack_propagate(0)
+                column_frame.pack()
+
+                # goal frame
+                goal_frame = customtkinter.CTkFrame(column_frame, fg_color="transparent", width=100, height=30, corner_radius=0)
+                goal_frame.pack_propagate(0)
+                goal_frame.pack(side="left")
+
+                # goal label
+                goal_label = customtkinter.CTkLabel(goal_frame, fg_color="transparent", corner_radius=0, text=goal, text_color=["black", "white"])
+                goal_label.pack()
+
+
+                # vertical divider
+                vertical_divider = customtkinter.CTkFrame(column_frame, fg_color="black", width=4, corner_radius=0)
+                vertical_divider.pack_propagate(0)
+                vertical_divider.pack(fill="y", side="left")
+
+                # tag frame
+                tag_frame = customtkinter.CTkFrame(column_frame, fg_color="transparent", width=296, height=30, corner_radius=0)
+                tag_frame.pack_propagate(0)
+                tag_frame.pack(side="left")
+
+                # tag entry box
+                tag_entry = customtkinter.CTkEntry(tag_frame, width=296, height=30, fg_color="transparent", corner_radius=0, border_width=0)
+                try:
+                    tag_entry.insert(0, goal_tags_json[goal])
+                except Exception as e:
+                    tag_entry.insert(0, "N/A")
+                tag_entry.pack_propagate(0)
+                tag_entry.pack()
+
+
+                # horizontal divider
+                bottom_divider = customtkinter.CTkFrame(self.master_frame, fg_color="black", height=4, corner_radius=0)
+                bottom_divider.pack_propagate(0)
+                bottom_divider.pack(fill="x")
+
+        
+
+        # replace text
+        # self.replace_text = customtkinter.CTkLabel(self.editgoals_window, text="Replace")
+        # self.replace_text.pack(pady=5)
+
+        # # tags replace box
+        # self.tagsreplacebox = customtkinter.CTkComboBox(self.editgoals_window, width=125, height=25, values=self.alltags, text_color=["black", "white"],
+        #                                                 border_width=0, corner_radius=0, fg_color=["white", "grey22"], button_color=["grey70", "grey26"], button_hover_color="grey35", bg_color="transparent")
+        # self.tagsreplacebox.set("")
+        # self.tagsreplacebox.pack()
+
+        # # with text
+        # self.replace_text = customtkinter.CTkLabel(self.editgoals_window, text="With", text_color=["black", "white"])
+        # self.replace_text.pack(pady=5)
+
+        # # replace entry box
+        # self.replace_entry = customtkinter.CTkEntry(self.editgoals_window, width=125, height=25, text_color=["black", "white"],
+        #                                                 border_width=0, corner_radius=0, fg_color=["white", "grey22"], bg_color="transparent")
+        # self.replace_entry.pack()
+
+        # # Replace Tags Button
+        # self.replace_button = customtkinter.CTkButton(self.editgoals_window, text="Replace Tags", width=100, command=self.on_replace_button, corner_radius=0,
+        #                                                 fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
+        # self.replace_button.pack(pady=20)
+
+    def on_savegoal_button(self):
+        self.goal_list = []
+        self.tag_list = []
+
+        self.loop_through_widgets(self.master_frame)
+
+        print(self.goal_list)
+        print(self.tag_list)
+
+        goal_tags = {} 
+        counter = 0
+        for goal in self.goal_list:
+            if self.tag_list[counter] == '':
+                self.tag_list[counter] = "N/A"
+            goal_tags[goal] = self.tag_list[counter]
+            counter += 1
+
+        print(goal_tags)
+        self.config['Beeminder']['goal_tags'] = json.dumps(goal_tags)
+        self.on_config_save()
+        self.show_info_message("Success!", "Goal Tags Saved. Now anytime you use these tags, they will contribute to your goals!")
+
+    def loop_through_widgets(self, frame):
+        # Get all child widgets of resultbox
+        for widget in frame.winfo_children():
+            if isinstance(widget, customtkinter.CTkLabel):
+                # Example: Print the text of CTkEntry widgets
+                newtext = widget.cget("text")
+                self.goal_list.append(newtext)
+                print(newtext)
+            if isinstance(widget, customtkinter.CTkEntry):
+                # Example: Print the text of CTkEntry widgets
+                newtext = widget.get()
+                self.tag_list.append(newtext)
+                print(newtext)
+            elif isinstance(widget, customtkinter.CTkFrame):
+                self.loop_through_widgets(widget)
+
+    def on_edit_task_button(self):
+        self.task_editor_window = customtkinter.CTkToplevel(self)
+        self.task_editor_window.after(250, lambda: self.task_editor_window.iconbitmap(resource_path('img/tagtime.ico')))
+        self.task_editor_window.title("Edit Tasks")
+        self.center_window_edittasks(400, 300)
+        self.task_editor_window.attributes("-topmost", True)
+        self.task_editor_window.after(1000, lambda: self.task_editor_window.attributes("-topmost", False))  # Disable topmost after 1 second
+        self.task_editor_window.focus_force()
+
+        # Master frame
+        self.task_master_frame = customtkinter.CTkScrollableFrame(self.task_editor_window, corner_radius=0, width=400, height=250)
+        self.task_master_frame.pack()
+
+        # Save Tasks Button
+        self.save_tasks_button = customtkinter.CTkButton(self.task_editor_window, text="Save Tasks", width=100, command=self.on_save_tasks_button, corner_radius=0,
+                                                        fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
+        self.save_tasks_button.pack(side="right", pady=5, padx=20)
+
+        task_tags = self.config['TaskEditor']['tasks']
+        print(task_tags, " task tags")
+        if task_tags != "NULL":
+            task_tags_json = json.loads(task_tags)
+            print(task_tags_json)
+
+        for i in range(100):
+            # column frame
+            column_frame = customtkinter.CTkFrame(self.task_master_frame, fg_color="transparent", height=30, width=400, corner_radius=0)
+            column_frame.pack_propagate(0)
+            column_frame.pack()
+
+            # goal frame
+            goal_frame = customtkinter.CTkFrame(column_frame, fg_color="transparent", width=100, height=30, corner_radius=0)
+            goal_frame.pack_propagate(0)
+            goal_frame.pack(side="left")
+
+            # goal label
+            goal_label = customtkinter.CTkLabel(goal_frame, fg_color="transparent", corner_radius=0, text=(i + 1), text_color=["black", "white"])
+            goal_label.pack(pady=2)
+
+
+            # vertical divider
+            vertical_divider = customtkinter.CTkFrame(column_frame, fg_color="black", width=4, corner_radius=0)
+            vertical_divider.pack_propagate(0)
+            vertical_divider.pack(fill="y", side="left")
+
+            # tag frame
+            tag_frame = customtkinter.CTkFrame(column_frame, fg_color="transparent", width=296, height=30, corner_radius=0)
+            tag_frame.pack_propagate(0)
+            tag_frame.pack(side="left")
+
+            # tag entry box
+            tag_entry = customtkinter.CTkEntry(tag_frame, width=296, height=30, fg_color="transparent", corner_radius=0, border_width=0)
+            try:
+                tag_entry.insert(0, task_tags_json[f"{i + 1}"])
+            except Exception as e:
+                tag_entry.insert(0, "N/A")
+            tag_entry.pack_propagate(0)
+            tag_entry.pack()
+
+
+            # horizontal divider
+            bottom_divider = customtkinter.CTkFrame(self.task_master_frame, fg_color="black", height=4, corner_radius=0)
+            bottom_divider.pack_propagate(0)
+            bottom_divider.pack(fill="x")
+
+    def on_save_tasks_button(self):
+        print("save tasks")
+        self.task_list = []
+        self.task_tag_list = []
+
+        self.loop_through_widgets_task_editor(self.task_master_frame)
+
+        print(self.task_list)
+        print(self.task_tag_list)
+
+        goal_tags = {} 
+        counter = 0
+        for goal in self.task_list:
+            if self.task_tag_list[counter] == '':
+                self.task_tag_list[counter] = "N/A"
+            goal_tags[goal] = self.task_tag_list[counter]
+            counter += 1
+
+        print(goal_tags)
+        self.config['TaskEditor']['tasks'] = json.dumps(goal_tags)
+        self.on_config_save()
+        self.show_info_message("Success!", "Tasks Saved. Now anytime you use these tasks to answer a ping, it will replace it will all of the tags you have set for it.")
+
+    def loop_through_widgets_task_editor(self, frame):
+        # Get all child widgets of resultbox
+        for widget in frame.winfo_children():
+            if isinstance(widget, customtkinter.CTkLabel):
+                # Example: Print the text of CTkEntry widgets
+                newtext = widget.cget("text")
+                self.task_list.append(newtext)
+                print(newtext)
+            if isinstance(widget, customtkinter.CTkEntry):
+                # Example: Print the text of CTkEntry widgets
+                newtext = widget.get()
+                self.task_tag_list.append(newtext)
+                print(newtext)
+            elif isinstance(widget, customtkinter.CTkFrame):
+                self.loop_through_widgets_task_editor(widget)
+
+
+        
+
+def main():
     app = App()
     app.mainloop()
+            
+if __name__ == "__main__":
+    main()
+
