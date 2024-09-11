@@ -15,13 +15,6 @@ from PIL import Image
 import beeminder
 import json
 
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS2
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
 class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, app_instance=None, **kwargs):
         self.app_instance = app_instance
@@ -103,13 +96,13 @@ class App(customtkinter.CTk):
     def settings_menu(self):
 
             # Get the directory of the current script
-            self.script_dir = resource_path('')
+            self.script_dir = os.path.dirname(os.path.realpath(__file__))
 
             # set paths
-            self.img_path = resource_path("img")
+            self.img_path = os.path.join(self.script_dir, "img")
 
             self.config = configparser.ConfigParser()
-            self.config.read(resource_path('config.ini'))
+            self.config.read(os.path.join(self.script_dir, 'config.ini'))
             self.appearance_mode = self.config['Settings']['appearance_mode']
 
             customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
@@ -122,7 +115,7 @@ class App(customtkinter.CTk):
             self.auth_token = self.config['Beeminder']['auth_token']
 
             # configure window
-            self.iconbitmap(resource_path('img/tagtime.ico'))
+            self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
             self.title("TagTime")
             self.center_window(400, 630)
             # self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -133,7 +126,7 @@ class App(customtkinter.CTk):
             self.frame.pack(fill="both", expand=True)
 
             # google image
-            self.google_img = customtkinter.CTkImage(light_image=Image.open(resource_path('img/google.png')), dark_image=Image.open(resource_path('img/google.png')), size=(50,50))
+            self.google_img = customtkinter.CTkImage(light_image=Image.open(os.path.join(self.img_path, 'google.png')), dark_image=Image.open(os.path.join(self.img_path, 'google.png')), size=(50,50))
 
             # google image label
             self.google_logo = customtkinter.CTkLabel(self.frame, text="", image=self.google_img)
@@ -151,7 +144,7 @@ class App(customtkinter.CTk):
                 self.display_signed_in()
 
             # beeminder image
-            self.beeminder_img = customtkinter.CTkImage(light_image=Image.open(resource_path('img/beeminder.png')), dark_image=Image.open(resource_path('img/beeminder.png')), size=(60,60))
+            self.beeminder_img = customtkinter.CTkImage(light_image=Image.open(os.path.join(self.img_path, 'beeminder.png')), dark_image=Image.open(os.path.join(self.img_path, 'beeminder.png')), size=(60,60))
 
             # beeminder image label
             self.beeminder_logo = customtkinter.CTkLabel(self.frame, text="", image=self.beeminder_img)
@@ -300,23 +293,23 @@ class App(customtkinter.CTk):
     def on_dropdown_click(self, value):
         self.config['Settings']['appearance_mode'] = value
         customtkinter.set_appearance_mode(value)
-        with open(resource_path('config.ini'), 'w') as configfile:
+        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_sound_dropdown_click(self, value):
         self.config['Settings']['sound'] = (value + ".wav")
-        with open(resource_path('config.ini'), 'w') as configfile:
+        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_tagcolor_dropdown_click(self, value):
         self.config['Settings']['tag_color'] = value
         self.tagcolor_test_frame.configure(fg_color=value, border_color=value)
-        with open(resource_path('config.ini'), 'w') as configfile:
+        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_gap_dropdown_click(self, value):
         self.config['Settings']['gap'] = value
-        with open(resource_path('config.ini'), 'w') as configfile:
+        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     # def minimize_window(self, hide=False):
@@ -450,7 +443,7 @@ class App(customtkinter.CTk):
         self.bee_signout_button.pack(side="left", pady=5, padx=(5, 0))
 
     def on_config_save(self):
-        with open(resource_path('config.ini'), 'w') as configfile:
+        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def show_alert(self):
@@ -589,11 +582,12 @@ class App(customtkinter.CTk):
         self.sign_in_button.pack(side="left")
 
     def show_info_message(self, title, message):
+        img_path = os.path.join(self.script_dir, "img")
         notification.notify(
             title=title,
             message=message,
             app_name="TagTime",
-            app_icon=resource_path('img/tagtime.ico')
+            app_icon=os.path.join(img_path, 'tagtime.ico')
         )
 
     def display_beeminder_sign_in(self):
@@ -633,7 +627,7 @@ class App(customtkinter.CTk):
         self.goals = beeminder.get_all_goals(self.auth_token)
         print(self.goals)
         self.editgoals_window = customtkinter.CTkToplevel(self)
-        self.editgoals_window.after(250, lambda: self.editgoals_window.iconbitmap(resource_path('img/tagtime.ico')))
+        self.editgoals_window.after(250, lambda: self.editgoals_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         self.editgoals_window.title("Edit Goals")
         self.center_window_editgoals(400, 300)
         self.editgoals_window.attributes("-topmost", True)
@@ -763,7 +757,7 @@ class App(customtkinter.CTk):
 
     def on_edit_task_button(self):
         self.task_editor_window = customtkinter.CTkToplevel(self)
-        self.task_editor_window.after(250, lambda: self.task_editor_window.iconbitmap(resource_path('img/tagtime.ico')))
+        self.task_editor_window.after(250, lambda: self.task_editor_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         self.task_editor_window.title("Edit Tasks")
         self.center_window_edittasks(400, 300)
         self.task_editor_window.attributes("-topmost", True)
