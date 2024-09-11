@@ -1,7 +1,8 @@
 # CloudTagTime
 "To determine how you spend your time, TagTime literally randomly samples you. At random times it pops up and asks what you're doing right at that moment. You answer with tags."
 
-![Screenshot 2024-08-11 030727](https://github.com/user-attachments/assets/12ba5127-96fd-4bc0-baf5-3cf5b72af996)
+![image](https://github.com/user-attachments/assets/b95860b8-7cf4-44ab-9dd5-1f2027ce548e)
+
 
 # Installation
 Windows:
@@ -23,21 +24,24 @@ Currently not tested, I made everything cross-platform compatable so correct me 
 * Save your log to the database after every ping
 
 # Log Viewer/Editor
-![Screenshot 2024-08-11 031219](https://github.com/user-attachments/assets/8049516d-af14-437d-9d1c-50498729cda8)
+![image](https://github.com/user-attachments/assets/5521a844-4839-4350-8a20-828539ccb245)
 
 * Search by tags and be able to edit any of your logs with ease.
-* You should be able to transfer your logs from the old version to here, by just replacing log.log in the root folder of TagTime and renaming your file to log.log.
+* Option to replace individual tags.
+* Transfer your logs from the old version to here, by just replacing log.log in the root folder of TagTime and renaming your file to log.log.
 
 # Settings
-![Screenshot 2024-08-11 030835](https://github.com/user-attachments/assets/789584d0-8287-4987-a6fa-8e0f018b5b84)
+![image](https://github.com/user-attachments/assets/e339e394-724a-4ee1-8074-5b60fe96ebd0)
+
+* Log in to Beeminder
+* Point tags to Beeminder goals in Edit Goals
+* Assign a string of tags and/or comments to a number in Task Editor
+
 
 * Note: If the gap is changed, it will take affect after the next ping, unless you restart the main file.
-
-# Tags
-* When you enter a word into the prompt, typing a comma, pressing space, or hitting enter will "create" a tag
-* After you have made the tags you want, press enter again, or hit the submit button.
 
 # Extra Features
 * Without typing anything in the prompt, press enter, and the log editor will open.
 * Enter a single double quote only (") to enter the same tags as last time.
 * Enter a question mark only (?) to open up the settings from the prompt.
+* Shift + Down/Up Arrow in the Log Editor will copy over the current tags line to line.
