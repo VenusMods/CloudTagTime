@@ -8,26 +8,36 @@ import configparser
 import threading
 import pystray
 from PIL import Image 
+from plyer import notification
 import os
+import prompt
+import settings
+import logviewer
+import sys
 
-# Get the directory of the current script
-script_dir = os.path.dirname(os.path.realpath(__file__))
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS2
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def str_to_bool(value):
   return value.lower() in ("yes", "true", "t", "1")
 
 def on_config_save(value):
         config['Settings']['last_ping'] = value
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             config.write(configfile)
 
 def on_config_save_first_time(value):
         config['Settings']['first_time'] = value
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             config.write(configfile)
 
 config = configparser.ConfigParser()
-config.read(os.path.join(script_dir, 'config.ini'))
+config.read(resource_path('config.ini'))
 tagtime_start = int(config['Settings']['urping']) # ur-ping, start of tagtime
 seed = int(config['Settings']['seed']) # the seed
 gap = int(config['Settings']['gap']) # Average gap in minutes
@@ -38,8 +48,7 @@ random.seed(seed) # Set the seed
 
 async def run_tagtime():
     try:
-        # Start the process without waiting for it to complete
-        subprocess.Popen(['python', os.path.join(script_dir, 'prompt.py')])
+        prompt.main()
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -68,7 +77,7 @@ async def catch_up(now, last_ping_time, gap):
     count = 0
     gap = int(config['Settings']['gap'])
     print("Catching up since last ping...")
-    log_file_path = os.path.join(script_dir, "log.log")  # Define log file path
+    log_file_path = resource_path("log.log")  # Define log file path
     while (now > last_ping_time):
         last_ping_time, wait_time_seconds = next_ping_time(last_ping_time, gap)
         count += 1
@@ -109,8 +118,16 @@ async def loop_time(new_ping_time, now):
         await asyncio.sleep(10)
         now = int(time.time())
 
+def show_info_message(title, message):
+    notification.notify(
+        title=title,
+        message=message,
+        app_name="TagTime",
+        app_icon=resource_path('img\\tagtime.ico')
+    )
 
-# Asynchronous function for pings
+
+# Asynchronous function to print "hello" at each ping time
 async def tagtime_pings(start_time, gap):
     now = int(time.time())
     gap = int(config['Settings']['gap'])
@@ -120,6 +137,9 @@ async def tagtime_pings(start_time, gap):
         new_ping_time = last_ping_time + wait_time_seconds
         on_config_save(str(int(last_ping_time)))
         on_config_save_first_time("False")
+        show_info_message("Success!", "TagTime Successfully Installed!\nTagTime will now ping you randomly! If you want to log in, go to settings.")
+        loop = asyncio.get_event_loop()
+        asyncio.run_coroutine_threadsafe(run_tagtime(), loop)
     else:
         last_ping_time = int(config['Settings']['last_ping'])
         if now > last_ping_time:
@@ -141,16 +161,14 @@ async def tagtime_pings(start_time, gap):
 
 def run_settings():
     try:
-        # Start the process without waiting for it to complete
-        subprocess.Popen(['python', os.path.join(script_dir, 'settings.py')])
+        settings.main()
 
     except Exception as e:
         print(f"An error occurred: {e}")
 
 def run_logviewer():
     try:
-        # Start the process without waiting for it to complete
-        subprocess.Popen(['python', os.path.join(script_dir, 'logviewer.py')])
+        logviewer.main()
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -160,8 +178,7 @@ def destroy(trayicon):
     os._exit(0)   # Exit the program
 
 async def create_tray_icon():
-    img_path = os.path.join(script_dir, "img")
-    image = Image.open(os.path.join(img_path, 'tagtime.ico'))
+    image = Image.open(resource_path('img\\tagtime.ico'))
     trayicon = pystray.Icon("Tagtime", image, menu=pystray.Menu(
         pystray.MenuItem("Settings", run_settings),
         pystray.MenuItem("Log Viewer/Editor", run_logviewer),
