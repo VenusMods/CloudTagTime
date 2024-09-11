@@ -1,5 +1,4 @@
 import os
-import sys
 import customtkinter
 from tkinter import filedialog
 import re
@@ -11,24 +10,21 @@ import time
 import json
 import beeminder
 
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS2
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
+        # Get the directory of the current script
+        self.script_dir = os.path.dirname(os.path.realpath(__file__))
+
+        # set paths
+        self.img_path = os.path.join(self.script_dir, "img")
         self.log_menu()
 
     def log_menu(self):
                 
         self.config = configparser.ConfigParser()
-        self.config.read(resource_path('config.ini'))
+        self.config.read(os.path.join(self.script_dir, 'config.ini'))
         self.appearance_mode = self.config['Settings']['appearance_mode']
         
         customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
@@ -37,7 +33,7 @@ class App(customtkinter.CTk):
         self.title("Log Viewer/Editor")
         self.center_window(900, 750)
         self.font = customtkinter.CTkFont(family="Helvetica", size=12)
-        self.iconbitmap(resource_path('img/tagtime.ico'))
+        self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
 
         self.attributes("-topmost", True)
         self.after(1000, lambda: self.attributes("-topmost", False))  # Disable topmost after 1 second
@@ -129,7 +125,7 @@ class App(customtkinter.CTk):
         self.resultsframe = customtkinter.CTkScrollableFrame(master=self.logframe, width=800, height=600)
         self.resultsframe.pack()
 
-        self.log_file_path = resource_path('log.log')
+        self.log_file_path = os.path.join(self.script_dir, 'log.log')
         self.fillgraph = self.process_log_file()
         self.fillgraph.reverse()
         self.is_reversed = True
@@ -911,15 +907,16 @@ class App(customtkinter.CTk):
         self.on_search_tag(tag)
 
     def on_config_save(self):
-        with open(resource_path('config.ini'), 'w') as configfile:
+        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def show_info_message(self, title, message):
+        img_path = os.path.join(self.script_dir, "img")
         notification.notify(
             title=title,
             message=message,
             app_name="TagTime",
-            app_icon=resource_path('img/tagtime.ico')
+            app_icon=os.path.join(img_path, 'tagtime.ico')
         )
 
     def on_next100_button(self):
@@ -1092,7 +1089,7 @@ class App(customtkinter.CTk):
     def on_replace_tag_button(self):
         print("on replace tag button")
         self.replace_window = customtkinter.CTkToplevel(self)
-        self.replace_window.after(250, lambda: self.replace_window.iconbitmap(resource_path('img/tagtime.ico')))
+        self.replace_window.after(250, lambda: self.replace_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         self.replace_window.title("Replace Tags")
         self.center_window_replace(300, 200)
         self.replace_window.attributes("-topmost", True)
