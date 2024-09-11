@@ -10,15 +10,6 @@ from playsound import playsound
 import requests
 import json
 import beeminder
-import sys
-
-def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS2
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -28,12 +19,18 @@ class App(customtkinter.CTk):
         self.auto_submit_timer = None
         self.auto_submit_time_limit = 60 * 1000  # 60 seconds in milliseconds
 
+        # Get the directory of the current script
+        self.script_dir = os.path.dirname(os.path.realpath(__file__))
+
         self.config = configparser.ConfigParser()
-        self.config.read(resource_path('config.ini'))
+        self.config.read(os.path.join(self.script_dir, 'config.ini'))
         self.appearance_mode = self.config['Settings']['appearance_mode']
 
         customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
         customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
+
+        # set paths
+        self.img_path = os.path.join(self.script_dir, "img")
 
         self.alltags = (self.config['Tags']['tags']).split(',')
 
@@ -43,7 +40,7 @@ class App(customtkinter.CTk):
         self.tag_end_index = 0
 
         # configure window
-        self.iconbitmap(resource_path('img/tagtime.ico'))
+        self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
         self.title("TagTime")
         self.center_window(400, 125)
         self.font = customtkinter.CTkFont(family="Helvetica", size=12)
@@ -51,9 +48,11 @@ class App(customtkinter.CTk):
         self.lift()
         self.attributes("-topmost", True)
         self.after(1000, lambda: self.attributes("-topmost", False))  # Disable topmost after 1 second
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        self.sound_path = os.path.join(self.script_dir, "sounds")
         self.sound = self.config['Settings']['sound']
-        threading.Thread(target=playsound, args=(resource_path(f'sounds/{self.sound}'),), daemon=True).start()
+        threading.Thread(target=playsound, args=(os.path.join(self.sound_path, self.sound),), daemon=True).start()
 
         # self.overrideredirect(True)  # Remove the title bar
         # self.focus_force()
@@ -346,7 +345,7 @@ class App(customtkinter.CTk):
     def log_entries_to_file(self):
         
         # Define the log file path
-        log_file_path = resource_path('log.log')
+        log_file_path = os.path.join(self.script_dir, "log.log")
         
         # Get the current time for the log entry
         now = int(time.time())
@@ -605,7 +604,7 @@ class App(customtkinter.CTk):
             self.remove_frame()
 
     def on_config_save(self):
-        with open(resource_path('config.ini'), 'w') as configfile:
+        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_space_pressed_tag(self, event):
@@ -640,7 +639,7 @@ class App(customtkinter.CTk):
     def run_settings(self):
         try:
             # Start the process without waiting for it to complete
-            subprocess.Popen(['python', resource_path('settings.py')])
+            subprocess.Popen(['python', os.path.join(self.script_dir, 'settings.py')])
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -648,7 +647,7 @@ class App(customtkinter.CTk):
     def run_logviewer(self):
         try:
             # Start the process without waiting for it to complete
-            subprocess.Popen(['python', resource_path('logviewer.py')])
+            subprocess.Popen(['python', os.path.join(self.script_dir, 'logviewer.py')])
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -676,7 +675,7 @@ class App(customtkinter.CTk):
             print("Error in updating cloud log:", update_response.json())
 
     def copy_tags_from_last_log_entry(self):
-        log_file_path = resource_path('log.log')
+        log_file_path = os.path.join(self.script_dir, "log.log")
 
         # Read the last line of the log file
         try:
@@ -732,6 +731,11 @@ class App(customtkinter.CTk):
             print("No parentheses found")
             content = ''
             return content
+        
+    def on_closing(self):
+        self.ping = "err"
+        self.download_button_event()
+        
 def main():
     app = App()
     app.mainloop()
