@@ -13,6 +13,7 @@ import os
 import prompt
 import settings
 import logviewer
+import customtkinter
 
 # Get the directory of the current script
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -21,11 +22,13 @@ def str_to_bool(value):
   return value.lower() in ("yes", "true", "t", "1")
 
 def on_config_save(value):
+        config.read(os.path.join(script_dir, 'config.ini'))
         config['Settings']['last_ping'] = value
         with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
             config.write(configfile)
 
 def on_config_save_first_time(value):
+        config.read(os.path.join(script_dir, 'config.ini'))
         config['Settings']['first_time'] = value
         with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
             config.write(configfile)
@@ -40,12 +43,17 @@ last_ping = int(config['Settings']['last_ping'])
 
 random.seed(seed) # Set the seed
 
-async def run_tagtime():
-    try:
-        prompt.main()
+def run_tagtime():
+    # print(config['Cloud']['refresh_token'], " refresh token")
+    # print(config['Beeminder']['auth_token'], " auth token")
+    # print(config['Beeminder']['goal_tags'], " goal tags")
+    # print(config['TaskEditor']['tasks'], " tasks")
+    prompt.PromptWindow(root)
+    # try:
+    #     prompt.main()
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
 
 # Function to generate the next ping time based on the exponential distribution
 def next_ping_time(last_ping_time, gap):
@@ -151,38 +159,40 @@ async def tagtime_pings(start_time, gap):
         on_config_save(str(int(new_ping_time)))
         on_config_save_first_time("False")
         show_info_message("Success!", "TagTime Successfully Installed!\nTagTime will now ping you randomly! If you want to log in, go to settings.")
-        loop = asyncio.get_event_loop()
-        asyncio.run_coroutine_threadsafe(run_tagtime(), loop)
+        run_tagtime()
     else:
         new_ping_time = int(config['Settings']['last_ping'])
         if now > new_ping_time:
             new_ping_time = await catch_up(now, start_time, new_ping_time, gap)
             on_config_save(str(int(new_ping_time)))
     while True:
-        gap = int(config['Settings']['gap'])
+        # gap = int(config['Settings']['gap'])
         now = int(time.time())
         final_wait_time = int(new_ping_time) - now
         print(f"Next ping at {int(new_ping_time)}, which is in {final_wait_time:.2f} seconds.")
         await loop_time(new_ping_time, now)
         print(f"Ping at {int(new_ping_time)}")
         on_config_save(str(int(new_ping_time)))
-        loop = asyncio.get_event_loop()
-        asyncio.run_coroutine_threadsafe(run_tagtime(), loop)
+        run_tagtime()
         new_ping_time = next_ping_time(new_ping_time, gap)
 
 def run_settings():
-    try:
-        settings.main()
+    settings.SettingsWindow(root)
+    # try:
+    #     # subprocess.Popen(['python', os.path.join(script_dir, 'settings.py')])
+    #     settings.main()
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
 
 def run_logviewer():
-    try:
-        logviewer.main()
+    logviewer.LogViewerWindow(root)
+    # try:
+    #     # subprocess.Popen(['python', os.path.join(script_dir, 'logviewer.py')])
+    #     logviewer.main()
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
 
 def destroy(trayicon):
     trayicon.stop()  # Stop the tray icon
@@ -192,19 +202,58 @@ async def create_tray_icon():
     img_path = os.path.join(script_dir, "img")
     image = Image.open(os.path.join(img_path, 'tagtime.ico'))
     trayicon = pystray.Icon("Tagtime", image, menu=pystray.Menu(
-        pystray.MenuItem("Settings", run_settings),
-        pystray.MenuItem("Log Viewer/Editor", run_logviewer),
+        pystray.MenuItem("Settings", lambda: run_settings()),
+        pystray.MenuItem("Log Viewer/Editor", lambda: run_logviewer()),
         pystray.MenuItem("Quit", lambda: destroy(trayicon))
     ))
 
     threading.Thread(target=trayicon.run, daemon=True).start()
 
-# Run the asyncio event loop
-async def main():
-    # task1 = asyncio.create_task(run_system_tray())
-    task1 = asyncio.create_task(create_tray_icon())
-    task2 = asyncio.create_task(tagtime_pings(tagtime_start, gap))
-    await asyncio.gather(task1, task2)
+# Combine asyncio and Tkinter event loops
+def run_asyncio_in_tkinter():
+    async def asyncio_task_runner():
+        # task1 = asyncio.create_task(run_system_tray())
+        task1 = asyncio.create_task(create_tray_icon())
+        task2 = asyncio.create_task(tagtime_pings(tagtime_start, gap))
+        await asyncio.gather(task1, task2)
+
+    # Start the asyncio loop
+    asyncio.ensure_future(asyncio_task_runner())
+
+    # Set up a repeating task for asyncio within Tkinter
+    def tkinter_poll():
+        try:
+            asyncio.get_event_loop().run_until_complete(asyncio.sleep(0.1))
+        finally:
+            root.after(100, tkinter_poll)
+
+    tkinter_poll()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    global root
+    root = customtkinter.CTk()  # The root window of customtkinter
+    root.withdraw()   # Hide the root window since we only use Toplevels
+
+    # Run asyncio and Tkinter together
+    run_asyncio_in_tkinter()
+
+    # Start Tkinter mainloop
+    root.mainloop()
+
+# # Run the asyncio event loop
+# async def main():
+#     # task1 = asyncio.create_task(run_system_tray())
+#     task1 = asyncio.create_task(create_tray_icon())
+#     task2 = asyncio.create_task(tagtime_pings(tagtime_start, gap))
+
+#     # Start Tkinter mainloop in the main thread
+#     loop = asyncio.get_event_loop()
+#     global root
+#     root = customtkinter.CTk()  # The root window of customtkinter
+#     root.withdraw()   # Hide the root window since we only use Toplevels
+#     threading.Thread(target=root.mainloop).start()
+
+#     await asyncio.gather(task1, task2)
+
+# if __name__ == "__main__":
+#     asyncio.run(main())
