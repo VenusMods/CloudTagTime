@@ -87,9 +87,9 @@ def start_local_server(app_instance):
         sys.stdout = original_stdout
         sys.stderr = original_stderr
 
-class App(customtkinter.CTk):
-    def __init__(self):
-        super().__init__()
+class SettingsWindow(customtkinter.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
 
         self.settings_menu()
 
@@ -115,7 +115,8 @@ class App(customtkinter.CTk):
             self.auth_token = self.config['Beeminder']['auth_token']
 
             # configure window
-            self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
+            self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+            # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
             self.title("TagTime")
             self.center_window(400, 630)
             # self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -862,10 +863,12 @@ class App(customtkinter.CTk):
 
         
 
-def main():
-    app = App()
-    app.mainloop()
+def main(parent):
+    SettingsWindow(parent)
             
 if __name__ == "__main__":
-    main()
+    root = customtkinter.CTk()  # Create the main window
+    root.withdraw()  # Hide the main window since we are only using Toplevels
+    main(root)
+    root.mainloop()
 
