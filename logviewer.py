@@ -10,9 +10,9 @@ import time
 import json
 import beeminder
 
-class App(customtkinter.CTk):
-    def __init__(self):
-        super().__init__()
+class LogViewerWindow(customtkinter.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
 
         # Get the directory of the current script
         self.script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -33,7 +33,8 @@ class App(customtkinter.CTk):
         self.title("Log Viewer/Editor")
         self.center_window(900, 750)
         self.font = customtkinter.CTkFont(family="Helvetica", size=12)
-        self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
+        self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+        # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
 
         self.attributes("-topmost", True)
         self.after(1000, lambda: self.attributes("-topmost", False))  # Disable topmost after 1 second
@@ -1419,9 +1420,11 @@ class App(customtkinter.CTk):
                                     beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'])
                                 continue
 
-def main():
-    app = App()
-    app.mainloop()
+def main(parent):
+    LogViewerWindow(parent)
 
 if __name__ == "__main__":
-    main()
+    root = customtkinter.CTk()  # Create the main window
+    root.withdraw()  # Hide the main window since we are only using Toplevels
+    main(root)
+    root.mainloop()
