@@ -10,10 +10,13 @@ from playsound import playsound
 import requests
 import json
 import beeminder
+import settings
+import logviewer
 
-class App(customtkinter.CTk):
-    def __init__(self):
-        super().__init__()
+class PromptWindow(customtkinter.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
 
         # Initialize the auto-submit timer
         self.auto_submit_timer = None
@@ -24,6 +27,10 @@ class App(customtkinter.CTk):
 
         self.config = configparser.ConfigParser()
         self.config.read(os.path.join(self.script_dir, 'config.ini'))
+        # print(self.config['Cloud']['refresh_token'], " refresh token")
+        # print(self.config['Beeminder']['auth_token'], " auth token")
+        # print(self.config['Beeminder']['goal_tags'], " goal tags")
+        # print(self.config['TaskEditor']['tasks'], " tasks")
         self.appearance_mode = self.config['Settings']['appearance_mode']
 
         customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
@@ -40,7 +47,8 @@ class App(customtkinter.CTk):
         self.tag_end_index = 0
 
         # configure window
-        self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
+        # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
+        self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         self.title("TagTime")
         self.center_window(400, 125)
         self.font = customtkinter.CTkFont(family="Helvetica", size=12)
@@ -188,7 +196,7 @@ class App(customtkinter.CTk):
 
     def auto_submit(self):
         print("1 minute has passed! AFK Flags Set.")
-        self.tagList = ["afk RETRO"]
+        self.ping = "afk RETRO"
         self.download_button_event()
 
     def change_appearance_mode_event(self):
@@ -212,12 +220,12 @@ class App(customtkinter.CTk):
     def on_enter_pressed_tag(self, event=0):
         self.ping = self.taginput.get()
         if self.ping == "":
-            # self.run_logviewer()
-            threading.Thread(target=self.run_logviewer, daemon=True).start()
+            self.run_logviewer()
+            # threading.Thread(target=self.run_logviewer, daemon=True).start()
             return
         elif self.ping == "?":
-            # self.run_settings()
-            threading.Thread(target=self.run_settings, daemon=True).start()
+            self.run_settings()
+            # threading.Thread(target=self.run_settings, daemon=True).start()
             self.taginput.delete(0, customtkinter.END)
             return
         elif self.ping == '"':
@@ -637,20 +645,22 @@ class App(customtkinter.CTk):
             self.on_enter_pressed_tag(event)
 
     def run_settings(self):
-        try:
-            # Start the process without waiting for it to complete
-            subprocess.Popen(['python', os.path.join(self.script_dir, 'settings.py')])
+        settings.SettingsWindow(self.parent)
+        # try:
+        #     # Start the process without waiting for it to complete
+        #     subprocess.Popen(['python', os.path.join(self.script_dir, 'settings.py')])
 
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        # except Exception as e:
+        #     print(f"An error occurred: {e}")
 
     def run_logviewer(self):
-        try:
-            # Start the process without waiting for it to complete
-            subprocess.Popen(['python', os.path.join(self.script_dir, 'logviewer.py')])
+        logviewer.LogViewerWindow(self.parent)
+        # try:
+        #     # Start the process without waiting for it to complete
+        #     subprocess.Popen(['python', os.path.join(self.script_dir, 'logviewer.py')])
 
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        # except Exception as e:
+        #     print(f"An error occurred: {e}")
 
     def update_cloud_log(self, file_path):
         new_url = "https://hello-bgfsl5zz5q-uc.a.run.app/update_cloud_log"
@@ -736,9 +746,12 @@ class App(customtkinter.CTk):
         self.ping = "err"
         self.download_button_event()
         
-def main():
-    app = App()
-    app.mainloop()
+def main(parent):
+    PromptWindow(parent)
  
 if __name__ == "__main__":
-    main()
+    # main()
+    root = customtkinter.CTk()  # Create the main window
+    root.withdraw()  # Hide the main window since we are only using Toplevels
+    main(root)
+    root.mainloop()
