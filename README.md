@@ -11,7 +11,12 @@ Windows:
 
 MacOS:
 --------
-0. ____________________________________________________________
+0. Download and run TagTime2.pkg from the Releases page
+1. Run TagTime from /Applications
+   
+**NOTE: There may be security warnings for installing the .pkg, and this is because I just started coding for MacOS, and I don't have an Apple Developer Account to sign the package, so if anyone wants to send me $99 to sign up for an account I'd be happy to notarize and sign the package so there would be no more security warnings cause i'm definitely not paying that by myself. Until then, all of the source code is on this GitHub, so you can see what the program does for yourself.**
+   - Your log file can be found in ~/Library/Application Support/TagTime.
+   - The Program is set by default to run on startup after installation.
 
 Linux:
 ------
