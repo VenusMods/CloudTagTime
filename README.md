@@ -7,25 +7,27 @@
 # Installation
 Windows:
 --------
-0. Download and run TagTime_2.0_setup.exe from the Releases page
+0. Make sure you have Python 3.8+ installed
+1. Press the green button at the top of this page that says "Code" and then Download ZIP, alternatively you can clone the repository.
+2. Install the required libaries by doing: pip install -r requirements.txt
+3. Run tagtime.py
 
 MacOS:
 --------
-0. Download and run TagTime2.pkg from the Releases page
-1. Run TagTime from /Applications
-   
-**NOTE: There may be security warnings for installing the .pkg, and this is because I just started coding for MacOS, and I don't have an Apple Developer Account to sign the package, so for right now there will be security warnings when you install. I am currently working on getting the app signed. Until then, all of the source code is on this GitHub, so you can see what the program does for yourself. If you want to skip the security message you can go to Security and Privacy in System Preferences to install the app**
-   - Your log file can be found in ~/Library/Application Support/TagTime.
-   - The Program is set by default to run on startup after installation.
+0. Make sure you have Python 3.8+ installed
+1. Press the green button at the top of this page that says "Code" and then Download ZIP, alternatively you can clone the repository.
+2. Open up a terminal, cd into your TagTime folder, and then cd into the "Mac" folder
+3. do "pip3 install -r requirements.txt" or "pip install -r requirements.txt"
+4. After the libraries are installed, do "python3 tagtime.py"
 
 Linux:
 ------
 Currently not tested, I made everything cross-platform compatable so correct me if i'm wrong, but you should be able to get it running by:
 
-0. Cloning this GitHub repo
-1. create a python virtual environment in the TagTime directory (python 3.8+)
-2. pip installing requirements.txt
-3. running "./tagtime.py &"
+0. Make sure you have Python 3.8+ installed
+1. Press the green button at the top of this page that says "Code" and then Download ZIP, alternatively you can clone the repository.
+2. Install the required libaries by doing: pip install -r requirements.txt
+3. Run tagtime.py
 
 # Cloud Features
 * Sign in with Google
