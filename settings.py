@@ -14,6 +14,7 @@ from plyer import notification
 from PIL import Image
 import beeminder
 import json
+import platform
 
 class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, app_instance=None, **kwargs):
@@ -115,10 +116,13 @@ class SettingsWindow(customtkinter.CTkToplevel):
             self.auth_token = self.config['Beeminder']['auth_token']
 
             # configure window
-            self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+            if platform.system() == 'Darwin':
+                self.wm_iconbitmap()
+            else:
+                self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
             # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
-            self.title("TagTime")
-            self.center_window(400, 630)
+            self.title("TagTime Settings")
+            self.center_window(400, 700)
             # self.protocol("WM_DELETE_WINDOW", self.on_closing)
             self.font = customtkinter.CTkFont(family="Helvetica", size=12)
 
@@ -195,11 +199,25 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
             # sound dropdown
             self.sound_dropdown = customtkinter.CTkOptionMenu(master=self.restoptions_frame,
-                                                                values=["blip", "blip-twang", "dadadum", "drip", "loud-ding", "loud-phaser", "loud-sorry", "loud-uh-oh", "pop", "quiet-doh", "whoosh"],
+                                                                values=["silent", "blip", "blip-twang", "dadadum", "drip", "loud-ding", "loud-phaser", "loud-sorry", "loud-uh-oh", "pop", "quiet-doh", "whoosh"],
                                                                 width=120, command=self.on_sound_dropdown_click, text_color=["black", "white"],
                                                                 fg_color=["white", "grey22"], bg_color="transparent", button_color=["grey70", "grey26"], corner_radius=0, button_hover_color="grey35")
             self.sound_dropdown.set(sound)
             self.sound_dropdown.pack()
+
+            # silent ping text
+            self.silent_ping_text = customtkinter.CTkLabel(self.restoptions_frame, text=f"Silent Ping")
+            self.silent_ping_text.pack(pady = 5, padx = 10)
+
+            silent_ping_option = self.config['Settings']['silent_ping']
+
+            # silent ping dropdown
+            self.silent_ping_dropdown = customtkinter.CTkOptionMenu(master=self.restoptions_frame,
+                                                                values=["False", "True"],
+                                                                width=120, command=self.on_silent_ping_dropdown_click, text_color=["black", "white"],
+                                                                fg_color=["white", "grey22"], bg_color="transparent", button_color=["grey70", "grey26"], corner_radius=0, button_hover_color="grey35")
+            self.silent_ping_dropdown.set(silent_ping_option)
+            self.silent_ping_dropdown.pack()
 
             # tag color frame
             self.tagcolor_frame = customtkinter.CTkFrame(self.restoptions_frame, fg_color="transparent", height=40)
@@ -299,6 +317,11 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
     def on_sound_dropdown_click(self, value):
         self.config['Settings']['sound'] = (value + ".wav")
+        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+            self.config.write(configfile)
+
+    def on_silent_ping_dropdown_click(self, value):
+        self.config['Settings']['silent_ping'] = value
         with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
@@ -583,13 +606,19 @@ class SettingsWindow(customtkinter.CTkToplevel):
         self.sign_in_button.pack(side="left")
 
     def show_info_message(self, title, message):
-        img_path = os.path.join(self.script_dir, "img")
-        notification.notify(
-            title=title,
-            message=message,
-            app_name="TagTime",
-            app_icon=os.path.join(img_path, 'tagtime.ico')
-        )
+        if platform.system() == 'Darwin':  # macOS
+            # Use osascript to send a native macOS notification
+            os.system(f'''
+                    osascript -e 'display notification "{message}" with title "{title}"'
+            ''')
+        else:
+            img_path = os.path.join(self.script_dir, "img")
+            notification.notify(
+                title=title,
+                message=message,
+                app_name="TagTime",
+                app_icon=os.path.join(img_path, 'tagtime.ico')
+            )
 
     def display_beeminder_sign_in(self):
         # Beeminder Frame
@@ -628,7 +657,10 @@ class SettingsWindow(customtkinter.CTkToplevel):
         self.goals = beeminder.get_all_goals(self.auth_token)
         print(self.goals)
         self.editgoals_window = customtkinter.CTkToplevel(self)
-        self.editgoals_window.after(250, lambda: self.editgoals_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+        if platform.system() == 'Darwin':
+            self.wm_iconbitmap()
+        else:
+            self.editgoals_window.after(250, lambda: self.editgoals_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         self.editgoals_window.title("Edit Goals")
         self.center_window_editgoals(400, 300)
         self.editgoals_window.attributes("-topmost", True)
@@ -758,7 +790,10 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
     def on_edit_task_button(self):
         self.task_editor_window = customtkinter.CTkToplevel(self)
-        self.task_editor_window.after(250, lambda: self.task_editor_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+        if platform.system() == 'Darwin':
+            self.wm_iconbitmap()
+        else:
+            self.task_editor_window.after(250, lambda: self.task_editor_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         self.task_editor_window.title("Edit Tasks")
         self.center_window_edittasks(400, 300)
         self.task_editor_window.attributes("-topmost", True)
