@@ -9,6 +9,7 @@ from plyer import notification
 import time
 import json
 import beeminder
+import platform
 
 class LogViewerWindow(customtkinter.CTkToplevel):
     def __init__(self, parent):
@@ -33,7 +34,10 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         self.title("Log Viewer/Editor")
         self.center_window(900, 750)
         self.font = customtkinter.CTkFont(family="Helvetica", size=12)
-        self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+        if platform.system() == 'Darwin':
+            self.wm_iconbitmap()
+        else:
+            self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
 
         self.attributes("-topmost", True)
@@ -912,13 +916,19 @@ class LogViewerWindow(customtkinter.CTkToplevel):
             self.config.write(configfile)
 
     def show_info_message(self, title, message):
-        img_path = os.path.join(self.script_dir, "img")
-        notification.notify(
-            title=title,
-            message=message,
-            app_name="TagTime",
-            app_icon=os.path.join(img_path, 'tagtime.ico')
-        )
+        if platform.system() == 'Darwin':  # macOS
+            # Use osascript to send a native macOS notification
+            os.system(f'''
+                    osascript -e 'display notification "{message}" with title "{title}"'
+            ''')
+        else:
+            img_path = os.path.join(self.script_dir, "img")
+            notification.notify(
+                title=title,
+                message=message,
+                app_name="TagTime",
+                app_icon=os.path.join(img_path, 'tagtime.ico')
+            )
 
     def on_next100_button(self):
         print("hello")
@@ -1090,7 +1100,10 @@ class LogViewerWindow(customtkinter.CTkToplevel):
     def on_replace_tag_button(self):
         print("on replace tag button")
         self.replace_window = customtkinter.CTkToplevel(self)
-        self.replace_window.after(250, lambda: self.replace_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+        if platform.system() == 'Darwin':
+            self.wm_iconbitmap()
+        else:
+            self.replace_window.after(250, lambda: self.replace_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         self.replace_window.title("Replace Tags")
         self.center_window_replace(300, 200)
         self.replace_window.attributes("-topmost", True)
@@ -1189,6 +1202,8 @@ class LogViewerWindow(customtkinter.CTkToplevel):
 
     def beeminder_check(self):
         auth_token = self.config['Beeminder']['auth_token']
+        gap = int(self.config['Settings']['gap'])
+        gap_value = gap / 60
         if auth_token != "NULL":
             goal_tags = self.config['Beeminder']['goal_tags']
             goal_tags_json = json.loads(goal_tags)
@@ -1247,7 +1262,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                         # Case 2
                         for item in tagtime_new_goals:
                             print(f"creating new datapoint for goal: {item['key']} with the tags: {item['tags']} and the timestamp: {item['unix']}")
-                            beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'])
+                            beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'], gap_value)
                             continue
 
                 else:
@@ -1269,7 +1284,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                         # Case 3
                         for items in tagtime_old_goals:
                             print(f"Deleting datapoint for goal: {items['key']} with the tags: {items['tags']} and the timestamp: {items['unix']}")
-                            beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'])
+                            beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'], gap_value)
                             continue
                     else:
                         print("old tags and new tags both have beeminder goals, calculate rest")
@@ -1293,10 +1308,10 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                 print("No beeminders tags from old log are current in new log, delete old datapoint, create new")
                                 for items in tagtime_old_goals:
                                     print(f"Deleting datapoint for goal: {items['key']} with the tags: {items['tags']} and the timestamp: {items['unix']}")
-                                    beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'])
+                                    beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'], gap_value)
                                 for item in tagtime_new_goals:
                                     print(f"Creating new datapoint for goal: {item['key']} with the tags: {item['tags']} and the timestamp: {item['unix']}")
-                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'])
+                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'], gap_value)
                                 continue
                             else:
                                 # Case 8
@@ -1329,13 +1344,13 @@ class LogViewerWindow(customtkinter.CTkToplevel):
 
                                 for items in delete_tags:
                                     print(f"Deleting datapoint for goal: {items['key']} with the tags: {items['tags']} and the timestamp: {items['unix']}")
-                                    beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'])
+                                    beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'], gap_value)
                                 for items in update_tags:
                                     print(f"Updating datapoint for goal: {items['key']} with the tags: {items['tags']} and the timestamp: {items['unix']}")
                                     beeminder.log_update_datapoint(auth_token, items['key'], items['unix'], item['old_words'], item['new_words'])
                                 for item in create_tags:
                                     print(f"Creating new datapoint for goal: {item['key']} with the tags: {item['tags']} and the timestamp: {item['unix']}")
-                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'])
+                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'], gap_value)
                                 continue
                         else:
                             print("different goals for sure, calculate rest")
@@ -1351,10 +1366,10 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                 print("No beeminders tags from old log are current in new log, delete old datapoint, create new")
                                 for items in tagtime_old_goals:
                                     print(f"Deleting datapoint for goal: {items['key']} with the tags: {items['tags']} and the timestamp: {items['unix']}")
-                                    beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'])
+                                    beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'], gap_value)
                                 for item in tagtime_new_goals:
                                     print(f"Creating new datapoint for goal: {item['key']} with the tags: {item['tags']} and the timestamp: {item['unix']}")
-                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'])
+                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'], gap_value)
                                 continue
                                 
                             elif match == len(tagtime_old_goals):
@@ -1377,7 +1392,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                     beeminder.log_update_datapoint(auth_token, items['key'], items['unix'], item['old_words'], item['new_words'])
                                 for item in create_tags:
                                     print(f"Creating new datapoint for goal: {item['key']} with the tags: {item['tags']} and the timestamp: {item['unix']}")
-                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'])
+                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'], gap_value)
                                 continue
                             else:
                                 # Case 7, 8
@@ -1411,13 +1426,13 @@ class LogViewerWindow(customtkinter.CTkToplevel):
 
                                 for items in delete_tags:
                                     print(f"Deleting datapoint for goal: {items['key']} with the tags: {items['tags']} and the timestamp: {items['unix']}")
-                                    beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'])
+                                    beeminder.log_delete_datapoint(auth_token, items['key'], items['unix'], item['old_words'], gap_value)
                                 for items in update_tags:
                                     print(f"Updating datapoint for goal: {items['key']} with the tags: {items['tags']} and the timestamp: {items['unix']}")
                                     beeminder.log_update_datapoint(auth_token, items['key'], items['unix'], item['old_words'], item['new_words'])
                                 for item in create_tags:
                                     print(f"Creating new datapoint for goal: {item['key']} with the tags: {item['tags']} and the timestamp: {item['unix']}")
-                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'])
+                                    beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'], gap_value)
                                 continue
 
 def main(parent):
