@@ -139,7 +139,7 @@ class SettingsWindow(customtkinter.CTkToplevel):
             else:
                 self.after(250, lambda: self.iconbitmap(resource_path('img/tagtime.ico')))
             self.title("TagTime Settings")
-            self.center_window(400, 630)
+            self.center_window(400, 700)
             self.font = customtkinter.CTkFont(family="Helvetica", size=12)
 
             # configure frame
@@ -215,11 +215,25 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
             # sound dropdown
             self.sound_dropdown = customtkinter.CTkOptionMenu(master=self.restoptions_frame,
-                                                                values=["blip", "blip-twang", "dadadum", "drip", "loud-ding", "loud-phaser", "loud-sorry", "loud-uh-oh", "pop", "quiet-doh", "whoosh"],
+                                                                values=["silent", "blip", "blip-twang", "dadadum", "drip", "loud-ding", "loud-phaser", "loud-sorry", "loud-uh-oh", "pop", "quiet-doh", "whoosh"],
                                                                 width=120, command=self.on_sound_dropdown_click, text_color=["black", "white"],
                                                                 fg_color=["white", "grey22"], bg_color="transparent", button_color=["grey70", "grey26"], corner_radius=0, button_hover_color="grey35")
             self.sound_dropdown.set(sound)
             self.sound_dropdown.pack()
+
+            # silent ping text
+            self.silent_ping_text = customtkinter.CTkLabel(self.restoptions_frame, text=f"Silent Ping")
+            self.silent_ping_text.pack(pady = 5, padx = 10)
+
+            silent_ping_option = self.config['Settings']['silent_ping']
+
+            # silent ping dropdown
+            self.silent_ping_dropdown = customtkinter.CTkOptionMenu(master=self.restoptions_frame,
+                                                                values=["False", "True"],
+                                                                width=120, command=self.on_silent_ping_dropdown_click, text_color=["black", "white"],
+                                                                fg_color=["white", "grey22"], bg_color="transparent", button_color=["grey70", "grey26"], corner_radius=0, button_hover_color="grey35")
+            self.silent_ping_dropdown.set(silent_ping_option)
+            self.silent_ping_dropdown.pack()
 
             # tag color frame
             self.tagcolor_frame = customtkinter.CTkFrame(self.restoptions_frame, fg_color="transparent", height=40)
@@ -319,6 +333,11 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
     def on_sound_dropdown_click(self, value):
         self.config['Settings']['sound'] = (value + ".wav")
+        with open(resource_path("config.ini"), 'w') as configfile:
+            self.config.write(configfile)
+
+    def on_silent_ping_dropdown_click(self, value):
+        self.config['Settings']['silent_ping'] = value
         with open(resource_path("config.ini"), 'w') as configfile:
             self.config.write(configfile)
 
