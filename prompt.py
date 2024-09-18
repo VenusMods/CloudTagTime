@@ -12,6 +12,7 @@ import json
 import beeminder
 import settings
 import logviewer
+import platform
 
 class PromptWindow(customtkinter.CTkToplevel):
     def __init__(self, parent):
@@ -32,6 +33,7 @@ class PromptWindow(customtkinter.CTkToplevel):
         # print(self.config['Beeminder']['goal_tags'], " goal tags")
         # print(self.config['TaskEditor']['tasks'], " tasks")
         self.appearance_mode = self.config['Settings']['appearance_mode']
+        silent_ping_option = self.config['Settings']['silent_ping']
 
         customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
         customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
@@ -48,7 +50,10 @@ class PromptWindow(customtkinter.CTkToplevel):
 
         # configure window
         # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
-        self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+        if platform.system() == 'Darwin':
+            self.wm_iconbitmap()
+        else:
+            self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
         self.title("TagTime")
         self.center_window(400, 125)
         self.font = customtkinter.CTkFont(family="Helvetica", size=12)
@@ -60,7 +65,11 @@ class PromptWindow(customtkinter.CTkToplevel):
 
         self.sound_path = os.path.join(self.script_dir, "sounds")
         self.sound = self.config['Settings']['sound']
-        threading.Thread(target=playsound, args=(os.path.join(self.sound_path, self.sound),), daemon=True).start()
+        if silent_ping_option == "True":
+            print("silent ping is true, skipping sound")
+        else:
+            print("silent ping is not on, playing sound")
+            threading.Thread(target=playsound, args=(os.path.join(self.sound_path, self.sound),), daemon=True).start()
 
         # self.overrideredirect(True)  # Remove the title bar
         # self.focus_force()
@@ -185,6 +194,15 @@ class PromptWindow(customtkinter.CTkToplevel):
         self.swapcount = 0
 
         # self.open_listbox()
+
+        if silent_ping_option == "True":
+            print("silent ping on")
+            self.ping = "silent"
+            self.withdraw()
+            self.download_button_event()
+            return
+        else:
+            print("silent ping not on")
 
         # Start the auto-submit timer
         self.start_auto_submit_timer()
@@ -707,6 +725,8 @@ class PromptWindow(customtkinter.CTkToplevel):
     def beeminder_check(self):
 
         auth_token = self.config['Beeminder']['auth_token']
+        gap = int(self.config['Settings']['gap'])
+        gap_value = gap / 60
         if auth_token != "NULL":
             goal_tags = self.config['Beeminder']['goal_tags']
             goal_tags_json = json.loads(goal_tags)
@@ -723,7 +743,7 @@ class PromptWindow(customtkinter.CTkToplevel):
                                 else:
                                     combined_tags = (self.beeminder_tags[0]) if self.beeminder_tags else ""
                                 try:
-                                    beeminder.create_datapoint(auth_token, self.beeminder_time, key, combined_tags)
+                                    beeminder.create_datapoint(auth_token, self.beeminder_time, key, combined_tags, gap_value)
                                     print(f"Successfully added datapoint to Beeminder Goal {key}!")
                                 except Exception as e:
                                     print(e)
