@@ -68,6 +68,7 @@ class PromptWindow(customtkinter.CTkToplevel):
         # print(self.config['Beeminder']['goal_tags'], " goal tags")
         # print(self.config['TaskEditor']['tasks'], " tasks")
         self.appearance_mode = self.config['Settings']['appearance_mode']
+        silent_ping_option = self.config['Settings']['silent_ping']
 
         customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
         customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
@@ -97,7 +98,11 @@ class PromptWindow(customtkinter.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.sound = self.config['Settings']['sound']
-        threading.Thread(target=playsound, args=(resource_path(f"sounds/{self.sound}"),), daemon=True).start()
+        if silent_ping_option == "True":
+            print("silent ping is true, skipping sound")
+        else:
+            print("silent ping is not on, playing sound")
+            threading.Thread(target=playsound, args=(resource_path(f"sounds/{self.sound}"),), daemon=True).start()
 
         # self.overrideredirect(True)  # Remove the title bar
         # self.focus_force()
@@ -222,6 +227,15 @@ class PromptWindow(customtkinter.CTkToplevel):
         self.swapcount = 0
 
         # self.open_listbox()
+
+        if silent_ping_option == "True":
+            print("silent ping on")
+            self.ping = "silent"
+            self.withdraw()
+            self.download_button_event()
+            return
+        else:
+            print("silent ping is not on")
 
         # Start the auto-submit timer
         self.start_auto_submit_timer()
@@ -747,6 +761,8 @@ class PromptWindow(customtkinter.CTkToplevel):
     def beeminder_check(self):
 
         auth_token = self.config['Beeminder']['auth_token']
+        gap = int(self.config['Settings']['gap'])
+        gap_value = gap / 60
         if auth_token != "NULL":
             goal_tags = self.config['Beeminder']['goal_tags']
             goal_tags_json = json.loads(goal_tags)
@@ -763,7 +779,7 @@ class PromptWindow(customtkinter.CTkToplevel):
                                 else:
                                     combined_tags = (self.beeminder_tags[0]) if self.beeminder_tags else ""
                                 try:
-                                    beeminder.create_datapoint(auth_token, self.beeminder_time, key, combined_tags)
+                                    beeminder.create_datapoint(auth_token, self.beeminder_time, key, combined_tags, gap_value)
                                     print(f"Successfully added datapoint to Beeminder Goal {key}!")
                                 except Exception as e:
                                     print(e)
