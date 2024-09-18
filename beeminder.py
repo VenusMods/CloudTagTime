@@ -136,7 +136,7 @@ def log_update_datapoint(auth_token, goal, timestamp, old_words, new_words):
         print("no matching datapoint id")
 
 # POST Request
-def create_datapoint(auth_token, timestamp, goal, tags):
+def create_datapoint(auth_token, timestamp, goal, tags, gap_value):
 
     data = get_goal_datapoints(auth_token, goal)
     fulltext = ""
@@ -196,7 +196,7 @@ def create_datapoint(auth_token, timestamp, goal, tags):
 
             final_tag = f"{new_prev_tag}, {tags}"
 
-            new_value = prev_value + 0.75
+            new_value = prev_value + gap_value
 
             update_datapoint(auth_token, goal, final_tag, prev_id, new_value)
             return
@@ -212,7 +212,7 @@ def create_datapoint(auth_token, timestamp, goal, tags):
     data = {
         "auth_token": auth_token,
         "timestamp": timestamp,
-        "value": 0.75,
+        "value": gap_value,
         "comment": f"1 ping: {tags}"
     }
 
@@ -297,7 +297,7 @@ def delete_datapoint(auth_token, goal, id):
         print(f"Request failed with status code {response.status_code}")
 
 # DELETE Request
-def log_delete_datapoint(auth_token, goal, timestamp, old_words):
+def log_delete_datapoint(auth_token, goal, timestamp, old_words, gap_value):
 
     print("LOG DELETE DATAPOINT")
 
@@ -350,7 +350,7 @@ def log_delete_datapoint(auth_token, goal, timestamp, old_words):
             delete_datapoint(auth_token, goal, prev_id)
             return
 
-        new_value = prev_value - 0.75
+        new_value = prev_value - gap_value
 
         print(prev_tag)
         print(old_words, " old words")
