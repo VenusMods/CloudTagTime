@@ -736,7 +736,7 @@ class PromptWindow(customtkinter.CTkToplevel):
                     pass
                 else:
                     for key, value in goal_tags_json.items():
-                        for item in value.split(","):
+                        for item in value.split(" "):
                             if tag == item.strip():
                                 if len(self.beeminder_tags) > 1:
                                     combined_tags = " ".join(self.beeminder_tags)
