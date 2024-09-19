@@ -1229,7 +1229,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                 for tag in old_tags:
                     if tag != '':
                         for key, value in goal_tags_json.items():
-                            for val in value.split(","):
+                            for val in value.split(" "):
                                 if tag == val.strip():
                                     result = {
                                         'key': key,
@@ -1244,7 +1244,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                     for tag in new_tags:
                         if tag != '':
                             for key, value in goal_tags_json.items():
-                                for val in value.split(","):
+                                for val in value.split(" "):
                                     if tag == val.strip():
                                         result = {
                                             'key': key,
@@ -1270,7 +1270,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                     for tag in new_tags:
                         if tag != '':
                             for key, value in goal_tags_json.items():
-                                for val in value.split(","):
+                                for val in value.split(" "):
                                     if tag == val.strip():
                                         result = {
                                             'key': key,
