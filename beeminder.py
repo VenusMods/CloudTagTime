@@ -181,15 +181,21 @@ def create_datapoint(auth_token, timestamp, goal, tags, gap_value):
 
             print(prev_tag)
             if ':' in prev_tag:
-                ping_count = prev_tag.split(":")[0].strip()
-                ping_num, ping_str = ping_count.split(" ")
-                new_ping_num = int(ping_num) + 1
-                if ping_str == 'ping':
-                    ping_str = 'pings'
-                new_ping_count = f"{new_ping_num} {ping_str}:"
-                remaining_text = prev_tag.split(":")[1].strip()
-                new_prev_tag = f"{new_ping_count} {remaining_text}"
-                print(new_prev_tag)
+                try:
+                    ping_count = prev_tag.split(":", 1)[0].strip()
+                    ping_num, ping_str = ping_count.split(" ")
+                    new_ping_num = int(ping_num) + 1
+                    if ping_str == 'ping':
+                        ping_str = 'pings'
+                    new_ping_count = f"{new_ping_num} {ping_str}:"
+                    remaining_text = prev_tag.split(":", 1)[1].strip()
+                    new_prev_tag = f"{new_ping_count} {remaining_text}"
+                    print(new_prev_tag)
+                except Exception as e:
+                    print(e)
+                    print("start of datapoint does not have <int> ping(s): but it does have something with a colon, revert to 2 pings: datapoint")
+                    new_ping_count = "2 pings:"
+                    new_prev_tag = f"{new_ping_count} {prev_tag}"
             else:
                 new_ping_count = "2 pings:"
                 new_prev_tag = f"{new_ping_count} {prev_tag}"
@@ -332,9 +338,13 @@ def log_delete_datapoint(auth_token, goal, timestamp, old_words, gap_value):
     if fulltext:
 
         if ':' in prev_tag:
-            ping_count = prev_tag.split(":")[0].strip()
-            ping_num, ping_str = ping_count.split(" ")
-            new_ping_num = int(ping_num) - 1
+            try:
+                ping_count = prev_tag.split(":", 1)[0].strip()
+                ping_num, ping_str = ping_count.split(" ")
+                new_ping_num = int(ping_num) - 1
+            except Exception as e:
+                print(e)
+                new_ping_num = 0
             if new_ping_num == 1:
                 ping_str = 'ping'
             if new_ping_num < 1:
@@ -342,7 +352,7 @@ def log_delete_datapoint(auth_token, goal, timestamp, old_words, gap_value):
                 delete_datapoint(auth_token, goal, prev_id)
                 return
             new_ping_count = f"{new_ping_num} {ping_str}:"
-            remaining_text = prev_tag.split(":")[1].strip()
+            remaining_text = prev_tag.split(":", 1)[1].strip()
             prev_tag = f"{new_ping_count} {remaining_text}"
             print(prev_tag)
         else:
