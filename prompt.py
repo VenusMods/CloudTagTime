@@ -471,6 +471,7 @@ class PromptWindow(customtkinter.CTkToplevel):
             self.iconify()
             if refresh_token != "NULL":
                 self.update_cloud_log(log_file_path)
+                self.on_sync_log()
             else:
                 print("Couldn't Sync to Cloud: Not Signed In")
         except Exception as e:
@@ -680,19 +681,69 @@ class PromptWindow(customtkinter.CTkToplevel):
         # except Exception as e:
         #     print(f"An error occurred: {e}")
 
+    def on_sync_log(self):
+        refresh_token = self.config['Cloud']['refresh_token']
+        url = "https://hello-bgfsl5zz5q-uc.a.run.app/fetchlog"
+        try:
+            update_response = requests.post(
+                url,
+                json={
+                    'refresh_token': refresh_token
+                }
+            )
+
+            if update_response.status_code == 200:
+                update_data = update_response.json()
+                file_contents = update_data['file_content']
+                print("Success: Grabbed Log from Cloud")
+
+                file_path = os.path.join(self.script_dir, "log.log")
+
+                try:
+                    # Write the file contents to the log file in the root directory
+                    with open(file_path, "w") as file:
+                        file.write(file_contents)
+                    print(f"Log file updated: {file_path}")
+                except Exception as e:
+                    print(f"Error writing to log file: {e}")
+            else:
+                print("Error in grabbing cloud log:", update_response.json())
+        except Exception as e:
+            print(e)
+
     def update_cloud_log(self, file_path):
         new_url = "https://hello-bgfsl5zz5q-uc.a.run.app/update_cloud_log"
         refresh_token = self.config['Cloud']['refresh_token']
 
+        # with open(file_path, 'r') as file:
+        #     log_content = file.read()
+
+        # Read the latest line from the file
+        latest_line = ""
         with open(file_path, 'r') as file:
-            log_content = file.read()
+            # Move the cursor to the end of the file and read the last line
+            lines = file.readlines()
+            if lines:  # Check if the file is not empty
+                latest_line = lines[-1].strip()  # Remove any trailing newlines or spaces
+
+        # If no lines are found, exit the function early
+        if not latest_line:
+            print("Log file is empty, no updates to send.")
+            return
+        
+        print(latest_line, " latest line")
+
+        # # Use a regular expression to replace the leading numbers with a test string
+        # new_timestamp = "1731149999"  # Test string
+        # modified_line = re.sub(r"^\d+", new_timestamp, latest_line)
+
+        # print(modified_line, " modified line")
 
         update_response = requests.post(
             new_url,
             json={
                 'refresh_token': refresh_token,
-                'file_name': os.path.basename(file_path),
-                'file_content': log_content
+                'new_log_entry': latest_line
             }
         )
 
@@ -701,6 +752,21 @@ class PromptWindow(customtkinter.CTkToplevel):
             print("Success:", update_data['message'])
         else:
             print("Error in updating cloud log:", update_response.json())
+
+        # update_response = requests.post(
+        #     new_url,
+        #     json={
+        #         'refresh_token': refresh_token,
+        #         'new_log_entry': os.path.basename(file_path),
+        #         'file_content': latest_line
+        #     }
+        # )
+
+        # if update_response.status_code == 200:
+        #     update_data = update_response.json()
+        #     print("Success:", update_data['message'])
+        # else:
+        #     print("Error in updating cloud log:", update_response.json())
 
     def copy_tags_from_last_log_entry(self):
         log_file_path = os.path.join(self.script_dir, "log.log")
