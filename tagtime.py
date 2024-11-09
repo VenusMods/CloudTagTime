@@ -15,6 +15,10 @@ import logviewer
 import customtkinter
 import platform
 
+class GapChangedException(Exception):
+    """Custom exception to indicate that the gap has changed."""
+    pass
+
 # Get the directory of the current script
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -68,6 +72,10 @@ def ran01():
 def exprand(gap):
     return -gap * math.log(ran01())
 
+def reset_rng():
+    global seed
+    seed = SEED
+
 def run_tagtime():
     # print(config['Cloud']['refresh_token'], " refresh token")
     # print(config['Beeminder']['auth_token'], " auth token")
@@ -94,8 +102,8 @@ def next_ping_time(prevping, gap):
     return max(prevping + 1, round(prevping + exprand(gap) * 60))
 
 async def first_time_check(now, last_ping_time, gap):
+    reset_rng() # Reset RNG to its initial state
     count = 0
-    gap = int(config['Settings']['gap'])
     print("Starting first time check. Login to the Cloud in Settings To Sync Your Logs.")
     print("first time check: ", now, " now, ", last_ping_time, " last ping time")
     while (now > last_ping_time):
@@ -106,7 +114,6 @@ async def first_time_check(now, last_ping_time, gap):
 
 async def catch_up(now, start_time, last_ping_time, gap):
     count = 0
-    gap = int(config['Settings']['gap'])
     print("Catching up since last ping...")
     log_file_path = os.path.join(script_dir, "log.log")  # Define log file path
 
@@ -159,10 +166,20 @@ async def catch_up(now, start_time, last_ping_time, gap):
     return start_time
 
 async def loop_time(new_ping_time, now):
+    global gap
+    initial_gap = gap
     while (now < new_ping_time):
-        await asyncio.sleep(10)
+        await asyncio.sleep(2)
         now = int(time.time())
-        print(int(new_ping_time - now), " seconds left")
+        # print(int(new_ping_time - now), " seconds left")
+
+        # Check if gap has changed.
+        config.read(os.path.join(script_dir, 'config.ini'))
+        new_gap = int(config['Settings']['gap'])
+        if initial_gap != new_gap:
+            print("gap has changed.")
+            gap = new_gap
+            raise GapChangedException
 
 def show_info_message(title, message):
     if platform.system() == 'Darwin':  # macOS
@@ -181,9 +198,9 @@ def show_info_message(title, message):
 
 
 # Asynchronous function to print "hello" at each ping time
-async def tagtime_pings(start_time, gap):
+async def tagtime_pings(start_time):
+    global gap
     now = int(time.time())
-    gap = int(config['Settings']['gap'])
     if (first_time):
         new_ping_time = await first_time_check(now, start_time, gap)
         print(now, " now")
@@ -202,15 +219,21 @@ async def tagtime_pings(start_time, gap):
             new_ping_time = await first_time_check(now, start_time, gap)
             on_config_save(str(int(new_ping_time)))
     while True:
-        # gap = int(config['Settings']['gap'])
-        now = int(time.time())
-        final_wait_time = int(new_ping_time) - now
-        print(f"Next ping at {int(new_ping_time)}, which is in {final_wait_time:.2f} seconds.")
-        on_config_save(str(int(new_ping_time)))
-        await loop_time(new_ping_time, now)
-        print(f"Ping at {int(new_ping_time)}")
-        run_tagtime()
-        new_ping_time = next_ping_time(new_ping_time, gap)
+        try:
+            now = int(time.time())
+            final_wait_time = int(new_ping_time) - now
+            print(f"Next ping at {int(new_ping_time)}, which is in {final_wait_time:.2f} seconds.")
+            on_config_save(str(int(new_ping_time)))
+            await loop_time(new_ping_time, now)
+            print(f"Ping at {int(new_ping_time)}")
+            run_tagtime()
+            new_ping_time = next_ping_time(new_ping_time, gap)
+        except GapChangedException:
+            print("Handling gap change, Redo'ing first time method to put you back onto schedule. This is why you will see first time startup print statements next.")
+            print(gap, " new gap")
+            now = int(time.time())
+            new_ping_time = await first_time_check(now, start_time, gap)
+            on_config_save(str(int(new_ping_time)))
 
 def run_settings():
     settings.SettingsWindow(root)
@@ -253,7 +276,7 @@ def run_asyncio_in_tkinter():
     async def asyncio_task_runner():
         # task1 = asyncio.create_task(run_system_tray())
         task1 = asyncio.create_task(create_tray_icon())
-        task2 = asyncio.create_task(tagtime_pings(tagtime_start, gap))
+        task2 = asyncio.create_task(tagtime_pings(tagtime_start))
         await asyncio.gather(task1, task2)
 
     # Start the asyncio loop
