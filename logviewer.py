@@ -55,12 +55,17 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         self.topframe.pack_propagate(0)
         self.topframe.pack(pady=5)
 
-        # Export Log from Cloud text
-        self.cloudlog_text = customtkinter.CTkLabel(self.topframe, text="Export Log From Cloud: ")
-        self.cloudlog_text.pack(pady=10, side="left")
+        # # Export Log from Cloud text
+        # self.cloudlog_text = customtkinter.CTkLabel(self.topframe, text="Export Log From Cloud: ")
+        # self.cloudlog_text.pack(pady=10, side="left")
 
         # Export Log from Cloud Button
-        self.cloudlog_button = customtkinter.CTkButton(self.topframe, text="Export", width=70, command=self.on_export_log, corner_radius=0,
+        self.importlog_button = customtkinter.CTkButton(self.topframe, text="Import Log to Cloud", width=70, command=self.on_import_log, corner_radius=0,
+                                                        fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
+        self.importlog_button.pack(side="left", padx=5)
+
+        # Export Log from Cloud Button
+        self.cloudlog_button = customtkinter.CTkButton(self.topframe, text="Export Log From Cloud", width=70, command=self.on_export_log, corner_radius=0,
                                                         fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
         self.cloudlog_button.pack(side="left", padx=5)
 
@@ -650,6 +655,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
 
         self.save_edited_log()
         self.display_alert()
+        self.sync_cloud_log()
 
     def loop_through_tag_widgets(self, frame):
         # Get all child widgets of resultbox
@@ -853,8 +859,58 @@ class LogViewerWindow(customtkinter.CTkToplevel):
     def display_alert(self):
         self.show_info_message("Log Saved!", "The updated log has now been saved.")
 
+    def on_import_log(self):
+        refresh_token = self.config['Cloud']['refresh_token']
+        if refresh_token == "NULL":
+            self.show_info_message("Error", "Currently not signed in to Google.")
+            return
+        
+        # Prompt the user to select a file to import
+        file_path = filedialog.askopenfilename(
+            title="Select Log File to Import",
+            filetypes=[("Log Files", "*.log"), ("All Files", "*.*")]
+        )
+
+        if not file_path:
+            print("Import operation was canceled.")
+            return
+        
+        try:
+            # Read the selected file's content
+            with open(file_path, "r") as file:
+                file_contents = file.read()
+
+            # print(f"Selected file content: {file_contents}")
+
+            # Replace the cloud log with the imported content
+            url = "https://hello-bgfsl5zz5q-uc.a.run.app/import_cloud_log"
+            update_response = requests.post(
+                url,
+                json={
+                    'refresh_token': refresh_token,
+                    'file_name': "log.log",  # The cloud log file name
+                    'file_content': file_contents
+                }
+            )
+
+            if update_response.status_code == 200:
+                print("Success: Replaced cloud log with imported file.")
+                self.show_info_message("Success", "Cloud log successfully replaced with the imported file.")
+            else:
+                print("Error in replacing cloud log:", update_response.json())
+                self.show_info_message("Error", "Error replacing cloud log.")
+        except Exception as e:
+            print(f"Error importing file: {e}")
+            self.show_info_message("Error", f"Error importing file: {e}")
+        
+
+
     def on_export_log(self):
         refresh_token = self.config['Cloud']['refresh_token']
+        if refresh_token == "NULL":
+            self.show_info_message("Error", "Currently not signed in to Google.")
+            return
+        
         url = "https://hello-bgfsl5zz5q-uc.a.run.app/fetchlog"
         try:
             update_response = requests.post(
@@ -1179,6 +1235,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                     self.beeminder_check()
                 self.save_edited_log()
                 self.display_alert()
+                self.sync_cloud_log()
 
                 # Destroy all widgets inside the resultsframe
                 for widget in self.resultsframe.winfo_children():
@@ -1434,6 +1491,48 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                     print(f"Creating new datapoint for goal: {item['key']} with the tags: {item['tags']} and the timestamp: {item['unix']}")
                                     beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'], gap_value)
                                 continue
+
+    def sync_cloud_log(self):
+        refresh_token = self.config['Cloud']['refresh_token']
+        if refresh_token == "NULL":
+            self.show_info_message("Error", "Currently not signed in to Google.")
+            return
+        
+        file_path = os.path.join(self.script_dir, "log.log")
+        
+        try:
+            # Ensure the file exists
+            if not os.path.exists(file_path):
+                print(f"Error: {file_path} does not exist.")
+                self.show_info_message("Error", "Local log.log file not found.")
+                return
+
+            # Read the content of the log.log file
+            with open(file_path, "r") as file:
+                file_contents = file.read()
+
+            # print(f"Selected file content: {file_contents}")
+
+            # Replace the cloud log with the imported content
+            url = "https://hello-bgfsl5zz5q-uc.a.run.app/import_cloud_log"
+            update_response = requests.post(
+                url,
+                json={
+                    'refresh_token': refresh_token,
+                    'file_name': "log.log",  # The cloud log file name
+                    'file_content': file_contents
+                }
+            )
+
+            if update_response.status_code == 200:
+                print("Success: Replaced cloud log with imported file.")
+                self.show_info_message("Success", "Cloud log successfully replaced with the imported file.")
+            else:
+                print("Error in replacing cloud log:", update_response.json())
+                self.show_info_message("Error", "Error replacing cloud log.")
+        except Exception as e:
+            print(f"Error importing file: {e}")
+            self.show_info_message("Error", f"Error importing file: {e}")
 
 def main(parent):
     LogViewerWindow(parent)
