@@ -896,6 +896,18 @@ class LogViewerWindow(customtkinter.CTkToplevel):
             if update_response.status_code == 200:
                 print("Success: Replaced cloud log with imported file.")
                 self.show_info_message("Success", "Cloud log successfully replaced with the imported file.")
+                og_file_path = os.path.join(self.script_dir, "log.log")
+                try:
+                    # Write the file contents to the log file in the root directory
+                    with open(og_file_path, "w") as file:
+                        file.write(file_contents)
+                    print(f"Log file updated: {og_file_path}")
+
+                    # refresh the log viewer with new log.
+                    self.refresh_log()
+
+                except Exception as e:
+                    print(f"Error writing to log file: {e}")
             else:
                 print("Error in replacing cloud log:", update_response.json())
                 self.show_info_message("Error", "Error replacing cloud log.")
@@ -1533,6 +1545,18 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         except Exception as e:
             print(f"Error importing file: {e}")
             self.show_info_message("Error", f"Error importing file: {e}")
+
+    def refresh_log(self):
+        # Destroy all widgets inside the resultsframe
+        for widget in self.resultsframe.winfo_children():
+            widget.destroy()
+
+        self.log_file_path = os.path.join(self.script_dir, 'log.log')
+        self.fillgraph = self.process_log_file()
+        self.fillgraph.reverse()
+        self.is_reversed = True
+
+        self.display_fillgraph()
 
 def main(parent):
     LogViewerWindow(parent)
