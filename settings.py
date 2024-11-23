@@ -40,6 +40,8 @@ class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Send the authorization code in a JSON request to your hello URL
                 self.send_authorization_code(authorization_code, state)
+
+                self.on_sync_log()
                 
                 # Stop the server after handling the request
                 self.server.shutdown()
@@ -67,6 +69,40 @@ class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
         except requests.exceptions.RequestException as e:
             # Print any exception that occurs during the request
             print(f"Request failed: {e}")
+
+    def on_sync_log(self):
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        config = configparser.ConfigParser()
+        config.read(os.path.join(script_dir, 'config.ini'))
+
+        refresh_token = config['Cloud']['refresh_token']
+        url = "https://hello-bgfsl5zz5q-uc.a.run.app/fetchlog"
+        try:
+            update_response = requests.post(
+                url,
+                json={
+                    'refresh_token': refresh_token
+                }
+            )
+
+            if update_response.status_code == 200:
+                update_data = update_response.json()
+                file_contents = update_data['file_content']
+                print("Success: Grabbed Log from Cloud")
+
+                file_path = os.path.join(script_dir, "log.log")
+
+                try:
+                    # Write the file contents to the log file in the root directory
+                    with open(file_path, "w") as file:
+                        file.write(file_contents)
+                    print(f"Log file updated: {file_path}")
+                except Exception as e:
+                    print(f"Error writing to log file: {e}")
+            else:
+                print("Error in grabbing cloud log:", update_response.json())
+        except Exception as e:
+            print(e)
 
 # Start the local server in a separate thread
 def start_local_server(app_instance):
@@ -895,8 +931,6 @@ class SettingsWindow(customtkinter.CTkToplevel):
             elif isinstance(widget, customtkinter.CTkFrame):
                 self.loop_through_widgets_task_editor(widget)
 
-
-        
 
 def main(parent):
     SettingsWindow(parent)
