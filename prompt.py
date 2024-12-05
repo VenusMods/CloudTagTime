@@ -13,6 +13,7 @@ import beeminder
 import settings
 import logviewer
 import platform
+import math
 
 class PromptWindow(customtkinter.CTkToplevel):
     def __init__(self, parent):
@@ -207,6 +208,10 @@ class PromptWindow(customtkinter.CTkToplevel):
         # Start the auto-submit timer
         self.start_auto_submit_timer()
 
+        # Schedule determinePingTime to run after the window loads
+        self.after(750, self.startDeterminePingTime)
+
+
     def start_auto_submit_timer(self):
         if self.auto_submit_timer is not None:
             self.after_cancel(self.auto_submit_timer)
@@ -374,7 +379,13 @@ class PromptWindow(customtkinter.CTkToplevel):
         log_file_path = os.path.join(self.script_dir, "log.log")
         
         # Get the current time for the log entry
-        now = int(time.time())
+        if (self.second_to_last_ping_time):
+            now = self.second_to_last_ping_time
+        else:
+            print("no second to last ping time")
+            now = int(time.time())
+
+        print("now: ", now)
         self.beeminder_time = now
 
         # format tags
@@ -419,6 +430,9 @@ class PromptWindow(customtkinter.CTkToplevel):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
+                print("THIS IS IT")
+                print(current_time)
+                print(log_entry)
             elif len(formatted_tags) < 66:
                 print(len(formatted_tags), " len of formatted tags")
                 spaces = 65 - len(formatted_tags)
@@ -831,6 +845,67 @@ class PromptWindow(customtkinter.CTkToplevel):
     def on_closing(self):
         self.ping = "err"
         self.download_button_event()
+
+    def startDeterminePingTime(self):
+        thread = threading.Thread(target=self.determinePingTime, daemon=True)
+        thread.start()
+
+    def determinePingTime(self):
+
+        seed1 = int(self.config['Settings']['seed'])
+        tagtime_start1 = int(self.config['Settings']['urping'])
+        gap1 = int(self.config['Settings']['gap'])
+        now = int(time.time()) + 1
+
+        # Constants used in the RNG (similar to Perl script)
+        IA1 = 16807        # Multiplier
+        IM1 = 2147483647   # Modulus (2^31 - 1)
+        URPING1 = tagtime_start1  # Fixed start time
+        SEED1 = seed1      # Initial seed value
+        GAP1 = gap1            # Mean gap in minutes for exponential distribution
+
+        # Initialize seed
+        seed1 = SEED1
+
+        # RNG equivalent to Perl's ran0 function
+        def ran0():
+            nonlocal seed1
+            seed1 = (IA1 * seed1) % IM1
+            return seed1
+
+        # Function to generate a random number between 0 and 1
+        def ran01():
+            return ran0() / IM1
+
+        # Exponential random number generator
+        def exprand(gap):
+            return -gap * math.log(ran01())
+
+        def reset_rng():
+            nonlocal seed1
+            seed1 = SEED1
+
+        # Function to generate the next ping time based on the exponential distribution
+        def next_ping_time(prevping, gap):
+            return max(prevping + 1, round(prevping + exprand(gap) * 60))
+        
+        reset_rng()
+
+        last_ping_time = URPING1
+        second_to_last_ping_time = None  # Variable to hold the second-to-last value
+
+        print("now in determine ping time: ", now)
+
+        while now > last_ping_time:
+            second_to_last_ping_time = last_ping_time  # Store the current value as the previous
+            last_ping_time = next_ping_time(last_ping_time, GAP1)
+
+        print("Second-to-last ping time: ", second_to_last_ping_time)
+
+        self.second_to_last_ping_time = second_to_last_ping_time
+
+        # return second_to_last_ping_time
+
         
 def main(parent):
     PromptWindow(parent)
