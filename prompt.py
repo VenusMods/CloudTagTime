@@ -67,9 +67,10 @@ class PromptWindow(customtkinter.CTkToplevel):
         self.sound_path = os.path.join(self.script_dir, "sounds")
         self.sound = self.config['Settings']['sound']
         if silent_ping_option == "True":
-            print("silent ping is true, skipping sound")
+            # print("silent ping is true, skipping sound")
+            pass
         else:
-            print("silent ping is not on, playing sound")
+            # print("silent ping is not on, playing sound")
             threading.Thread(target=playsound, args=(os.path.join(self.sound_path, self.sound),), daemon=True).start()
 
         # self.overrideredirect(True)  # Remove the title bar
@@ -197,13 +198,14 @@ class PromptWindow(customtkinter.CTkToplevel):
         # self.open_listbox()
 
         if silent_ping_option == "True":
-            print("silent ping on")
+            # print("silent ping on")
             self.ping = "silent"
             self.withdraw()
             self.download_button_event()
             return
         else:
-            print("silent ping not on")
+            # print("silent ping not on")
+            pass
 
         # Start the auto-submit timer
         self.start_auto_submit_timer()
@@ -323,21 +325,21 @@ class PromptWindow(customtkinter.CTkToplevel):
 
         # REPLACE TASK EDITOR TAGS
         task_tags = self.config['TaskEditor']['tasks']
-        print(task_tags, " task tags")
+        # print(task_tags, " task tags")
         if task_tags != "NULL":
             task_tags_json = json.loads(task_tags)
-            print(task_tags_json)
+            # print(task_tags_json)
             for item in self.seperated_ping:
-                print(item, " item from self.seperated_ping")
+                # print(item, " item from self.seperated_ping")
                 try:
                     if task_tags_json[f"{item}"] != "N/A":
                         original_text = task_tags_json[f"{item}"]
                         seperated_text = re.findall(pattern, original_text)
-                        print(seperated_text, " seperated text")
+                        # print(seperated_text, " seperated text")
                         index = self.seperated_ping.index(item)
                         counter = 0
                         for new_item in seperated_text:
-                            print(new_item, " new_item")
+                            # print(new_item, " new_item")
                             if counter == 0:
                                 self.seperated_ping[index] = new_item
                             else:
@@ -349,7 +351,7 @@ class PromptWindow(customtkinter.CTkToplevel):
 
 
         self.beeminder_tags = self.seperated_ping[:]
-        print(self.beeminder_tags, " BEEMINDER TAGS FROM DOWNLOAD EVENT")
+        # print(self.beeminder_tags, " BEEMINDER TAGS FROM DOWNLOAD EVENT")
         self.log_entries_to_file()
         self.beeminder_check()
         self.destroy()
@@ -385,12 +387,12 @@ class PromptWindow(customtkinter.CTkToplevel):
             print("no second to last ping time")
             now = int(time.time())
 
-        print("now: ", now)
+        # print("now: ", now)
         self.beeminder_time = now
 
         # format tags
         formatted_tags = ' '.join(self.seperated_ping)
-        print(formatted_tags, " formatted tags")
+        # print(formatted_tags, " formatted tags")
 
         # Get the current time
         current_day = time.localtime()
@@ -404,57 +406,57 @@ class PromptWindow(customtkinter.CTkToplevel):
         if len(formatted_tags) > 50:
             new_formatted_tags = (formatted_tags[:len(formatted_tags)]).ljust(len(formatted_tags))
             if len(formatted_tags) < 56:
-                print(len(formatted_tags), " len of formatted tags")
+                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 55 - len(formatted_tags)
-                print(spaces, " spaces")
+                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%m.%d %H:%M:%S")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time} {day_abbr}]\n'
             elif len(formatted_tags) < 60:
-                print(len(formatted_tags), " len of formatted tags")
+                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 59 - len(formatted_tags)
-                print(spaces, " spaces")
+                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%m.%d %H:%M:%S")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
             elif len(formatted_tags) < 63:
-                print(len(formatted_tags), " len of formatted tags")
+                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 62 - len(formatted_tags)
-                print(spaces, " spaces")
+                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%m.%d %H:%M")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
-                print("THIS IS IT")
-                print(current_time)
-                print(log_entry)
+                # print("THIS IS IT")
+                # print(current_time)
+                # print(log_entry)
             elif len(formatted_tags) < 66:
-                print(len(formatted_tags), " len of formatted tags")
+                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 65 - len(formatted_tags)
-                print(spaces, " spaces")
+                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%d %H:%M")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
             elif len(formatted_tags) < 69:
-                print(len(formatted_tags), " len of formatted tags")
+                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 68 - len(formatted_tags)
-                print(spaces, " spaces")
+                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%H:%M")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
             elif len(formatted_tags) < 72:
-                print(len(formatted_tags), " len of formatted tags")
+                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 71 - len(formatted_tags)
-                print(spaces, " spaces")
+                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%M")
                 for i in range(spaces):
                     new_formatted_tags += ' '
@@ -625,7 +627,7 @@ class PromptWindow(customtkinter.CTkToplevel):
     
     def on_backspace_key(self, event):
         index = self.get_tag_index()
-        print(index)
+        # print(index)
         if index <= 1:
 
             if self.tagArray:
@@ -654,12 +656,13 @@ class PromptWindow(customtkinter.CTkToplevel):
         current_text = self.taginput.get()[:cursor_position]
 
         if '(' in current_text:
-            print("currently a comment.")
+            # print("currently a comment.")
+            pass
         else:
             # Remove the last character (space) from the entry
             current_text = self.taginput.get()
             if current_text.endswith(' '):
-                print("ends in space")
+                # print("ends in space")
                 self.taginput.delete(len(current_text)-1, len(current_text))
             self.on_enter_pressed_tag(event)
 
@@ -669,7 +672,8 @@ class PromptWindow(customtkinter.CTkToplevel):
         current_text = self.taginput.get()[:cursor_position]
 
         if '(' in current_text:
-            print("currently a comment.")
+            # print("currently a comment.")
+            pass
         else:
             # Remove the last character (comma) from the entry
             current_text = self.taginput.get()
@@ -742,10 +746,10 @@ class PromptWindow(customtkinter.CTkToplevel):
 
         # If no lines are found, exit the function early
         if not latest_line:
-            print("Log file is empty, no updates to send.")
+            # print("Log file is empty, no updates to send.")
             return
         
-        print(latest_line, " latest line")
+        # print(latest_line, " latest line")
 
         # # Use a regular expression to replace the leading numbers with a test string
         # new_timestamp = "1731149999"  # Test string
@@ -812,7 +816,7 @@ class PromptWindow(customtkinter.CTkToplevel):
             goal_tags_json = json.loads(goal_tags)
             for tag in self.beeminder_tags:
                 if '(' in tag or ')' in tag:
-                    print(tag, " has a comment!")
+                    # print(tag, " has a comment!")
                     pass
                 else:
                     for key, value in goal_tags_json.items():
@@ -835,10 +839,10 @@ class PromptWindow(customtkinter.CTkToplevel):
         # Check if there is a match and print the result
         if match:
             content = match.group(1)  # Extract the content inside parentheses
-            print(content)
+            # print(content)
             return content
         else:
-            print("No parentheses found")
+            # print("No parentheses found")
             content = ''
             return content
         
@@ -894,25 +898,31 @@ class PromptWindow(customtkinter.CTkToplevel):
         last_ping_time = URPING1
         second_to_last_ping_time = None  # Variable to hold the second-to-last value
 
-        print("now in determine ping time: ", now)
+        # print("now in determine ping time: ", now)
 
         while now > last_ping_time:
             second_to_last_ping_time = last_ping_time  # Store the current value as the previous
             last_ping_time = next_ping_time(last_ping_time, GAP1)
 
-        print("Second-to-last ping time: ", second_to_last_ping_time)
+        # print("Second-to-last ping time: ", second_to_last_ping_time)
 
         self.second_to_last_ping_time = second_to_last_ping_time
 
         # return second_to_last_ping_time
 
         
-def main(parent):
+def startup(parent):
     PromptWindow(parent)
+
+def main():
+    root = customtkinter.CTk()  # Create the main window
+    root.withdraw()  # Hide the main window since we are only using Toplevels
+    startup(root)
+    root.mainloop()
  
 if __name__ == "__main__":
     # main()
     root = customtkinter.CTk()  # Create the main window
     root.withdraw()  # Hide the main window since we are only using Toplevels
-    main(root)
+    startup(root)
     root.mainloop()
