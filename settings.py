@@ -10,11 +10,11 @@ import requests
 import http.server
 import socketserver
 import urllib.parse
-from plyer import notification
 from PIL import Image
 import beeminder
 import json
 import platform
+from notifypy import Notify
 
 class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, app_instance=None, **kwargs):
@@ -648,13 +648,13 @@ class SettingsWindow(customtkinter.CTkToplevel):
                     osascript -e 'display notification "{message}" with title "{title}"'
             ''')
         else:
-            img_path = os.path.join(self.script_dir, "img")
-            notification.notify(
-                title=title,
-                message=message,
-                app_name="TagTime",
-                app_icon=os.path.join(img_path, 'tagtime.ico')
-            )
+            notification = Notify()
+            notification.title = title
+            notification.message = message
+            notification.application_name = "TagTime"
+            notification.icon = os.path.join(self.script_dir, "img", "tagtime.ico")
+
+            notification.send(block=False)
 
     def display_beeminder_sign_in(self):
         # Beeminder Frame
@@ -932,12 +932,18 @@ class SettingsWindow(customtkinter.CTkToplevel):
                 self.loop_through_widgets_task_editor(widget)
 
 
-def main(parent):
+def startup(parent):
     SettingsWindow(parent)
+
+def main():
+    print("starting settings")
+    root = customtkinter.CTk()  # Create the main window
+    root.withdraw()  # Hide the main window since we are only using Toplevels
+    startup(root)
+    root.mainloop()
             
 if __name__ == "__main__":
     root = customtkinter.CTk()  # Create the main window
     root.withdraw()  # Hide the main window since we are only using Toplevels
-    main(root)
+    startup(root)
     root.mainloop()
-
