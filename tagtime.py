@@ -14,6 +14,8 @@ import settings
 import logviewer
 import customtkinter
 import platform
+import multiprocessing
+from notifypy import Notify
 
 class GapChangedException(Exception):
     """Custom exception to indicate that the gap has changed."""
@@ -77,11 +79,12 @@ def reset_rng():
     seed = SEED
 
 def run_tagtime():
+    multiprocessing.Process(target=prompt.main).start()
+    # prompt.PromptWindow(root)
     # print(config['Cloud']['refresh_token'], " refresh token")
     # print(config['Beeminder']['auth_token'], " auth token")
     # print(config['Beeminder']['goal_tags'], " goal tags")
     # print(config['TaskEditor']['tasks'], " tasks")
-    prompt.PromptWindow(root)
     # try:
     #     prompt.main()
 
@@ -105,7 +108,7 @@ async def first_time_check(now, last_ping_time, gap):
     reset_rng() # Reset RNG to its initial state
     count = 0
     print("Starting first time check. Login to the Cloud in Settings To Sync Your Logs.")
-    print("first time check: ", now, " now, ", last_ping_time, " last ping time")
+    # print("first time check: ", now, " now, ", last_ping_time, " last ping time")
     while (now > last_ping_time):
         last_ping_time = next_ping_time(last_ping_time, gap)
         count += 1
@@ -117,8 +120,8 @@ async def catch_up(now, start_time, last_ping_time, gap):
     print("Catching up since last ping...")
     log_file_path = os.path.join(script_dir, "log.log")  # Define log file path
 
-    print(start_time, " initial start time")
-    print(last_ping_time, " initial last ping time")
+    # print(start_time, " initial start time")
+    # print(last_ping_time, " initial last ping time")
 
     while (last_ping_time > start_time):
         start_time = next_ping_time(start_time, gap)
@@ -126,8 +129,8 @@ async def catch_up(now, start_time, last_ping_time, gap):
 
     count = 0
 
-    print(now, " now")
-    print(start_time, " start time")
+    # print(now, " now")
+    # print(start_time, " start time")
 
     while (now > start_time):
         # Get the current timestamp
@@ -188,13 +191,13 @@ def show_info_message(title, message):
                 osascript -e 'display notification "{message}" with title "{title}"'
         ''')
     else:
-        img_path = os.path.join(script_dir, "img")
-        notification.notify(
-            title=title,
-            message=message,
-            app_name="TagTime",
-            app_icon=os.path.join(img_path, 'tagtime.ico')
-        )
+        notification = Notify()
+        notification.title = title
+        notification.message = message
+        notification.application_name = "TagTime"
+        notification.icon = os.path.join(script_dir, "img", "tagtime.ico")
+
+        notification.send(block=False)
 
 
 # Asynchronous function to print "hello" at each ping time
@@ -203,11 +206,11 @@ async def tagtime_pings(start_time):
     now = int(time.time())
     if (first_time):
         new_ping_time = await first_time_check(now, start_time, gap)
-        print(now, " now")
-        print(new_ping_time, " new ping")
+        # print(now, " now")
+        # print(new_ping_time, " new ping")
         on_config_save(str(int(new_ping_time)))
         on_config_save_first_time("False")
-        show_info_message("Success!", "TagTime Successfully Installed!\nTagTime will now ping you randomly! If you want to log in, go to settings.")
+        show_info_message("TagTime Successfully Installed!", "TagTime will now ping you randomly! If you want to log in, go to settings.")
         run_tagtime()
     else:
         new_ping_time = int(config['Settings']['last_ping'])
@@ -236,7 +239,8 @@ async def tagtime_pings(start_time):
             on_config_save(str(int(new_ping_time)))
 
 def run_settings():
-    settings.SettingsWindow(root)
+    # settings.SettingsWindow(root)
+    multiprocessing.Process(target=settings.main).start()
     # try:
     #     # subprocess.Popen(['python', os.path.join(script_dir, 'settings.py')])
     #     settings.main()
@@ -245,7 +249,8 @@ def run_settings():
     #     print(f"An error occurred: {e}")
 
 def run_logviewer():
-    logviewer.LogViewerWindow(root)
+    # logviewer.LogViewerWindow(root)
+    multiprocessing.Process(target=logviewer.main).start()
     # try:
     #     # subprocess.Popen(['python', os.path.join(script_dir, 'logviewer.py')])
     #     logviewer.main()
@@ -257,7 +262,7 @@ def destroy(trayicon):
     trayicon.stop()  # Stop the tray icon
     os._exit(0)   # Exit the program
 
-async def create_tray_icon():
+def create_tray_icon():
     if platform.system() == 'Darwin':  # macOS
         return
     img_path = os.path.join(script_dir, "img")
@@ -268,8 +273,8 @@ async def create_tray_icon():
         pystray.MenuItem("Quit", lambda: destroy(trayicon))
     ))
 
-    threading.Thread(target=trayicon.run, daemon=True).start()
-    # trayicon.run()
+    # threading.Thread(target=trayicon.run, daemon=True).start()
+    trayicon.run()
 
 # Combine asyncio and Tkinter event loops
 def run_asyncio_in_tkinter():
@@ -283,62 +288,32 @@ def run_asyncio_in_tkinter():
     asyncio.ensure_future(asyncio_task_runner())
 
     # Set up a repeating task for asyncio within Tkinter
-    def tkinter_poll():
-        try:
-            asyncio.get_event_loop().run_until_complete(asyncio.sleep(0.1))
-        finally:
-            root.after(100, tkinter_poll)
+    # def tkinter_poll():
+    #     try:
+    #         asyncio.get_event_loop().run_until_complete(asyncio.sleep(0.1))
+    #     finally:
+    #         root.after(100, tkinter_poll)
 
-    tkinter_poll()
+    # tkinter_poll()
 
-# Combined asyncio and Tkinter event loops
-# def run_asyncio_in_tkinter():
-#     async def asyncio_task_runner():
-#         # task1 = asyncio.create_task(run_system_tray())
-#         task1 = asyncio.create_task(create_tray_icon())
-#         task2 = asyncio.create_task(tagtime_pings(tagtime_start, gap))  # Example, replace with actual values
-#         await asyncio.gather(task1, task2)
-
-#     # Create a new thread for asyncio
-#     def start_asyncio_loop():
-#         loop = asyncio.new_event_loop()
-#         asyncio.set_event_loop(loop)
-#         loop.run_until_complete(asyncio_task_runner())
-
-#     # Start asyncio in a separate thread
-#     threading.Thread(target=start_asyncio_loop, daemon=True).start()
-
-#     # Set up a repeating task for asyncio within Tkinter
-#     def tkinter_poll():
-#         root.after(100, tkinter_poll)
-
-#     tkinter_poll()
+def start_asyncio_loop():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(tagtime_pings(tagtime_start))
 
 if __name__ == "__main__":
-    global root
-    root = customtkinter.CTk()  # The root window of customtkinter
-    root.withdraw()   # Hide the root window since we only use Toplevels
+    multiprocessing.freeze_support()
+    multiprocessing.set_start_method('spawn')
+    asyncio_thread = threading.Thread(target=start_asyncio_loop, daemon=True)
+    asyncio_thread.start()
 
-    # Run asyncio and Tkinter together
-    run_asyncio_in_tkinter()
+    create_tray_icon()
+    # global root
+    # root = customtkinter.CTk()  # The root window of customtkinter
+    # root.withdraw()   # Hide the root window since we only use Toplevels
 
-    # Start Tkinter mainloop
-    root.mainloop()
+    # # Run asyncio and Tkinter together
+    # run_asyncio_in_tkinter()
 
-# # Run the asyncio event loop
-# async def main():
-#     # task1 = asyncio.create_task(run_system_tray())
-#     task1 = asyncio.create_task(create_tray_icon())
-#     task2 = asyncio.create_task(tagtime_pings(tagtime_start, gap))
-
-#     # Start Tkinter mainloop in the main thread
-#     loop = asyncio.get_event_loop()
-#     global root
-#     root = customtkinter.CTk()  # The root window of customtkinter
-#     root.withdraw()   # Hide the root window since we only use Toplevels
-#     threading.Thread(target=root.mainloop).start()
-
-#     await asyncio.gather(task1, task2)
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
+    # # Start Tkinter mainloop
+    # root.mainloop()
