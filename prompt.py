@@ -14,6 +14,7 @@ import settings
 import logviewer
 import platform
 import math
+import multiprocessing
 
 class PromptWindow(customtkinter.CTkToplevel):
     def __init__(self, parent):
@@ -682,7 +683,8 @@ class PromptWindow(customtkinter.CTkToplevel):
             self.on_enter_pressed_tag(event)
 
     def run_settings(self):
-        settings.SettingsWindow(self.parent)
+        multiprocessing.Process(target=settings.main).start()
+        # settings.SettingsWindow(self.parent)
         # try:
         #     # Start the process without waiting for it to complete
         #     subprocess.Popen(['python', os.path.join(self.script_dir, 'settings.py')])
@@ -691,7 +693,8 @@ class PromptWindow(customtkinter.CTkToplevel):
         #     print(f"An error occurred: {e}")
 
     def run_logviewer(self):
-        logviewer.LogViewerWindow(self.parent)
+        multiprocessing.Process(target=logviewer.main).start()
+        # logviewer.LogViewerWindow(self.parent)
         # try:
         #     # Start the process without waiting for it to complete
         #     subprocess.Popen(['python', os.path.join(self.script_dir, 'logviewer.py')])
