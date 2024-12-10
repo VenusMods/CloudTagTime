@@ -177,12 +177,8 @@ class SettingsWindow(customtkinter.CTkToplevel):
             self.sign_in_frame = customtkinter.CTkFrame(self.frame, width=400, height=50, fg_color="transparent")
             # self.sign_in_frame.pack_propagate(0)
             self.sign_in_frame.pack(pady=5)
-
-            if not self.bool_get_user_info_from_token():
-                self.display_sign_in_stuff()
-            else:
-                self.email = self.get_user_info_from_token(self.refresh_token)
-                self.display_signed_in()
+            self.google_loading_text = customtkinter.CTkLabel(self.sign_in_frame, text="Loading...")
+            self.google_loading_text.pack()
 
             # beeminder image
             self.beeminder_img = customtkinter.CTkImage(light_image=Image.open(os.path.join(self.img_path, 'beeminder.png')), dark_image=Image.open(os.path.join(self.img_path, 'beeminder.png')), size=(60,60))
@@ -296,6 +292,14 @@ class SettingsWindow(customtkinter.CTkToplevel):
                                                                 fg_color=["white", "grey22"], bg_color="transparent", button_color=["grey70", "grey26"], corner_radius=0, button_hover_color="grey35")
             self.average_ping_time_dropdown.set(gap)
             self.average_ping_time_dropdown.pack()
+
+            # update google signed in frame based on successful email grab
+            if self.refresh_token != "NULL":
+                # Schedule determineSignedIn to run after the window loads
+                self.after(100, self.startDetermineSignedIn)
+            else:
+                print("no refresh token")
+                self.display_sign_in_stuff()
 
     def center_window(self, width=400, height=490):
         # Get the screen width and height
@@ -465,24 +469,24 @@ class SettingsWindow(customtkinter.CTkToplevel):
         else:
             return "fail"
         
-    def bool_get_user_info_from_token(self):
-        if self.refresh_token != "NULL":
-            url = "https://hello-bgfsl5zz5q-uc.a.run.app/getemail"
-            update_response = requests.post(
-                url,
-                json={
-                    'refresh_token': self.refresh_token
-                }
-            )
+    def startDetermineSignedIn(self):
+        thread = threading.Thread(target=self.determineSignedIn, daemon=True)
+        thread.start()
 
-            if update_response.status_code == 200:
-                return True
-            else:
-                return False
+    def determineSignedIn(self):
+        self.email = self.get_user_info_from_token(self.refresh_token)
+        print("email: ", self.email)
+        if self.email != "fail":
+            self.display_signed_in()
         else:
-            return False
+            self.display_sign_in_stuff()
+
         
     def display_signed_in(self):
+        # Clear any existing widgets in self.sign_in_frame
+        for widget in self.sign_in_frame.winfo_children():
+            widget.destroy()
+
         self.signedin_text = customtkinter.CTkLabel(self.sign_in_frame, text=f"Signed in as: {self.email}")
         self.signedin_text.pack()
 
@@ -627,6 +631,10 @@ class SettingsWindow(customtkinter.CTkToplevel):
         self.show_info_message("Success!", "Successfully logged out.")
 
     def display_sign_in_stuff(self):
+        # Clear any existing widgets in self.sign_in_frame
+        for widget in self.sign_in_frame.winfo_children():
+            widget.destroy()
+
         # Google Frame
         self.google_frame = customtkinter.CTkFrame(self.sign_in_frame, fg_color="transparent", width=400, height=50)
         # self.google_frame.pack_propagate(0)
@@ -947,3 +955,4 @@ if __name__ == "__main__":
     root.withdraw()  # Hide the main window since we are only using Toplevels
     startup(root)
     root.mainloop()
+
