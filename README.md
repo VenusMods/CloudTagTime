@@ -8,17 +8,29 @@
 Windows:
 --------
 0. Make sure you have Python 3.8+ installed
-1. Press the green button at the top of this page that says "Code" and then Download ZIP, alternatively you can clone the repository.
+1. Press the green button at the top of this page that says "Code" and then Download ZIP, alternatively you can clone the repository. Then extract the folder if needed
 2. Install the required libaries by doing: pip install -r requirements.txt
 3. Run tagtime.py
 
 MacOS:
 --------
 0. Make sure you have Python 3.8+ installed
-1. Press the green button at the top of this page that says "Code" and then Download ZIP, alternatively you can clone the repository.
-2. Open up a terminal, cd into your TagTime folder, and then cd into the "Mac" folder
+1. Press the green button at the top of this page that says "Code" and then Download ZIP, alternatively you can clone the repository. Then extract the folder if needed
+2. Open up a terminal, cd into your TagTime folder
 3. do "pip3 install -r requirements.txt" or "pip install -r requirements.txt"
 4. After the libraries are installed, do "python3 tagtime.py"
+
+--Virtual Environment Setup--
+
+Might be easier for mac:
+
+0. Make sure you have Python 3.8+ installed
+1. Press the green button at the top of this page that says "Code" and then Download ZIP, alternatively you can clone the repository. Then extract the folder if needed
+2. Open up a terminal, cd into your TagTime folder
+3. do "python3 -m venv venv"
+4. Go into the virtual environment by doing "source venv/bin/activate"
+5. Then, do "pip install -r requirements.txt"
+6. After the libraries are installed, do "python tagtime.py"
 
 Linux:
 ------
