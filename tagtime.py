@@ -1,8 +1,7 @@
 import math
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
-import subprocess
 import configparser
 import threading
 import pystray
@@ -12,7 +11,6 @@ import os
 import prompt
 import settings
 import logviewer
-import customtkinter
 import platform
 import multiprocessing
 from notifypy import Notify
@@ -22,25 +20,26 @@ class GapChangedException(Exception):
     pass
 
 # Get the directory of the current script
-script_dir = os.path.dirname(os.path.realpath(__file__))
+def resource_path(relative_path):
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), relative_path)
 
 def str_to_bool(value):
   return value.lower() in ("yes", "true", "t", "1")
 
 def on_config_save(value):
-        config.read(os.path.join(script_dir, 'config.ini'))
+        config.read(resource_path('config.ini'))
         config['Settings']['last_ping'] = value
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             config.write(configfile)
 
 def on_config_save_first_time(value):
-        config.read(os.path.join(script_dir, 'config.ini'))
+        config.read(resource_path('config.ini'))
         config['Settings']['first_time'] = value
-        with open(os.path.join(script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             config.write(configfile)
 
 config = configparser.ConfigParser()
-config.read(os.path.join(script_dir, 'config.ini'))
+config.read(resource_path('config.ini'))
 tagtime_start = int(config['Settings']['urping']) # ur-ping, start of tagtime
 seed = int(config['Settings']['seed']) # the seed
 gap = int(config['Settings']['gap']) # Average gap in minutes
@@ -56,9 +55,6 @@ GAP = gap             # Mean gap in minutes for exponential distribution
 
 # Initialize seed (This is a global variable, as it modifies state for each random call)
 seed = SEED
-
-# random.seed(seed) # Set the seed
-# local_random = random.Random(seed)
 
 # RNG equivalent to Perl's ran0 function
 def ran0():
@@ -80,35 +76,15 @@ def reset_rng():
 
 def run_tagtime():
     multiprocessing.Process(target=prompt.main).start()
-    # prompt.PromptWindow(root)
-    # print(config['Cloud']['refresh_token'], " refresh token")
-    # print(config['Beeminder']['auth_token'], " auth token")
-    # print(config['Beeminder']['goal_tags'], " goal tags")
-    # print(config['TaskEditor']['tasks'], " tasks")
-    # try:
-    #     prompt.main()
-
-    # except Exception as e:
-    #     print(f"An error occurred: {e}")
 
 # Function to generate the next ping time based on the exponential distribution
 def next_ping_time(prevping, gap):
-    # # print(last_ping_time, " last ping time")
-    # gap = int(config['Settings']['gap'])   
-    # wait_time_minutes = -gap * math.log(1 - local_random.random())
-    # # print("wait time minutes", wait_time_minutes)
-    # wait_time = timedelta(minutes=wait_time_minutes)
-    # # print(int(wait_time.total_seconds()), " wait time")
-    # new_ping_time = int(last_ping_time + wait_time.total_seconds())
-    # # print(new_ping_time)
-    # return new_ping_time
     return max(prevping + 1, round(prevping + exprand(gap) * 60))
 
 async def first_time_check(now, last_ping_time, gap):
     reset_rng() # Reset RNG to its initial state
     count = 0
     print("Starting first time check. Login to the Cloud in Settings To Sync Your Logs.")
-    # print("first time check: ", now, " now, ", last_ping_time, " last ping time")
     while (now > last_ping_time):
         last_ping_time = next_ping_time(last_ping_time, gap)
         count += 1
@@ -118,19 +94,13 @@ async def first_time_check(now, last_ping_time, gap):
 async def catch_up(now, start_time, last_ping_time, gap):
     count = 0
     print("Catching up since last ping...")
-    log_file_path = os.path.join(script_dir, "log.log")  # Define log file path
-
-    # print(start_time, " initial start time")
-    # print(last_ping_time, " initial last ping time")
+    log_file_path = resource_path("log.log")  # Define log file path
 
     while (last_ping_time > start_time):
         start_time = next_ping_time(start_time, gap)
         count += 1
 
     count = 0
-
-    # print(now, " now")
-    # print(start_time, " start time")
 
     while (now > start_time):
         # Get the current timestamp
@@ -174,28 +144,33 @@ async def loop_time(new_ping_time, now):
     while (now < new_ping_time):
         await asyncio.sleep(2)
         now = int(time.time())
-        # print(int(new_ping_time - now), " seconds left")
 
         # Check if gap has changed.
-        config.read(os.path.join(script_dir, 'config.ini'))
+        config.read(resource_path('config.ini'))
         new_gap = int(config['Settings']['gap'])
         if initial_gap != new_gap:
             print("gap has changed.")
             gap = new_gap
             raise GapChangedException
 
-def show_info_message(title, message):
+def show_info_message(self, title, message):
     if platform.system() == 'Darwin':  # macOS
         # Use osascript to send a native macOS notification
-        os.system(f'''
-                osascript -e 'display notification "{message}" with title "{title}"'
-        ''')
+        # os.system(f'''
+        #         osascript -e 'display notification "{message}" with title "{title}"'
+        # ''')
+        notification = Notify()
+        notification.title = title
+        notification.message = message
+        notification.application_name = "TagTime"
+
+        notification.send(block=False)
     else:
         notification = Notify()
         notification.title = title
         notification.message = message
         notification.application_name = "TagTime"
-        notification.icon = os.path.join(script_dir, "img", "tagtime.ico")
+        notification.icon = resource_path("img/tagtime.ico")
 
         notification.send(block=False)
 
@@ -206,8 +181,6 @@ async def tagtime_pings(start_time):
     now = int(time.time())
     if (first_time):
         new_ping_time = await first_time_check(now, start_time, gap)
-        # print(now, " now")
-        # print(new_ping_time, " new ping")
         on_config_save(str(int(new_ping_time)))
         on_config_save_first_time("False")
         show_info_message("TagTime Successfully Installed!", "TagTime will now ping you randomly! If you want to log in, go to settings.")
@@ -239,62 +212,28 @@ async def tagtime_pings(start_time):
             on_config_save(str(int(new_ping_time)))
 
 def run_settings():
-    # settings.SettingsWindow(root)
     multiprocessing.Process(target=settings.main).start()
-    # try:
-    #     # subprocess.Popen(['python', os.path.join(script_dir, 'settings.py')])
-    #     settings.main()
-
-    # except Exception as e:
-    #     print(f"An error occurred: {e}")
 
 def run_logviewer():
-    # logviewer.LogViewerWindow(root)
     multiprocessing.Process(target=logviewer.main).start()
-    # try:
-    #     # subprocess.Popen(['python', os.path.join(script_dir, 'logviewer.py')])
-    #     logviewer.main()
-
-    # except Exception as e:
-    #     print(f"An error occurred: {e}")
 
 def destroy(trayicon):
     trayicon.stop()  # Stop the tray icon
     os._exit(0)   # Exit the program
 
 def create_tray_icon():
-    if platform.system() == 'Darwin':  # macOS
-        return
-    img_path = os.path.join(script_dir, "img")
-    image = Image.open(os.path.join(img_path, 'tagtime.ico'))
+    # if platform.system() == 'Darwin':  # macOS
+    #     return
+    # elif platform.system() == "Windows":
+    img_path = resource_path("img/tagtime.ico")
+    image = Image.open(img_path)
     trayicon = pystray.Icon("Tagtime", image, menu=pystray.Menu(
         pystray.MenuItem("Settings", lambda: run_settings()),
         pystray.MenuItem("Log Viewer/Editor", lambda: run_logviewer()),
         pystray.MenuItem("Quit", lambda: destroy(trayicon))
     ))
 
-    # threading.Thread(target=trayicon.run, daemon=True).start()
     trayicon.run()
-
-# Combine asyncio and Tkinter event loops
-def run_asyncio_in_tkinter():
-    async def asyncio_task_runner():
-        # task1 = asyncio.create_task(run_system_tray())
-        task1 = asyncio.create_task(create_tray_icon())
-        task2 = asyncio.create_task(tagtime_pings(tagtime_start))
-        await asyncio.gather(task1, task2)
-
-    # Start the asyncio loop
-    asyncio.ensure_future(asyncio_task_runner())
-
-    # Set up a repeating task for asyncio within Tkinter
-    # def tkinter_poll():
-    #     try:
-    #         asyncio.get_event_loop().run_until_complete(asyncio.sleep(0.1))
-    #     finally:
-    #         root.after(100, tkinter_poll)
-
-    # tkinter_poll()
 
 def start_asyncio_loop():
     loop = asyncio.new_event_loop()
@@ -308,12 +247,3 @@ if __name__ == "__main__":
     asyncio_thread.start()
 
     create_tray_icon()
-    # global root
-    # root = customtkinter.CTk()  # The root window of customtkinter
-    # root.withdraw()   # Hide the root window since we only use Toplevels
-
-    # # Run asyncio and Tkinter together
-    # run_asyncio_in_tkinter()
-
-    # # Start Tkinter mainloop
-    # root.mainloop()
