@@ -16,6 +16,10 @@ import json
 import platform
 from notifypy import Notify
 
+def resource_path(relative_path):
+    """Get the absolute path to a resource in the same folder as the script."""
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), relative_path)
+
 class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, app_instance=None, **kwargs):
         self.app_instance = app_instance
@@ -71,9 +75,8 @@ class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
             print(f"Request failed: {e}")
 
     def on_sync_log(self):
-        script_dir = os.path.dirname(os.path.realpath(__file__))
         config = configparser.ConfigParser()
-        config.read(os.path.join(script_dir, 'config.ini'))
+        config.read(resource_path('config.ini'))
 
         refresh_token = config['Cloud']['refresh_token']
         url = "https://hello-bgfsl5zz5q-uc.a.run.app/fetchlog"
@@ -90,7 +93,7 @@ class AuthorizationCodeHandler(http.server.SimpleHTTPRequestHandler):
                 file_contents = update_data['file_content']
                 print("Success: Grabbed Log from Cloud")
 
-                file_path = os.path.join(script_dir, "log.log")
+                file_path = resource_path('log.log')
 
                 try:
                     # Write the file contents to the log file in the root directory
@@ -132,14 +135,8 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
     def settings_menu(self):
 
-            # Get the directory of the current script
-            self.script_dir = os.path.dirname(os.path.realpath(__file__))
-
-            # set paths
-            self.img_path = os.path.join(self.script_dir, "img")
-
             self.config = configparser.ConfigParser()
-            self.config.read(os.path.join(self.script_dir, 'config.ini'))
+            self.config.read(resource_path('config.ini'))
             self.appearance_mode = self.config['Settings']['appearance_mode']
 
             customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
@@ -154,12 +151,11 @@ class SettingsWindow(customtkinter.CTkToplevel):
             # configure window
             if platform.system() == 'Darwin':
                 self.wm_iconbitmap()
+                self.protocol("WM_DELETE_WINDOW", self.on_closing)
             else:
-                self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
-            # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
+                self.after(250, lambda: self.iconbitmap(resource_path("img/tagtime.ico")))
             self.title("TagTime Settings")
             self.center_window(400, 700)
-            # self.protocol("WM_DELETE_WINDOW", self.on_closing)
             self.font = customtkinter.CTkFont(family="Helvetica", size=12)
 
             # configure frame
@@ -167,7 +163,7 @@ class SettingsWindow(customtkinter.CTkToplevel):
             self.frame.pack(fill="both", expand=True)
 
             # google image
-            self.google_img = customtkinter.CTkImage(light_image=Image.open(os.path.join(self.img_path, 'google.png')), dark_image=Image.open(os.path.join(self.img_path, 'google.png')), size=(50,50))
+            self.google_img = customtkinter.CTkImage(light_image=Image.open(resource_path("img/google.png")), dark_image=Image.open(resource_path("img/google.png")), size=(50,50))
 
             # google image label
             self.google_logo = customtkinter.CTkLabel(self.frame, text="", image=self.google_img)
@@ -181,7 +177,7 @@ class SettingsWindow(customtkinter.CTkToplevel):
             self.google_loading_text.pack()
 
             # beeminder image
-            self.beeminder_img = customtkinter.CTkImage(light_image=Image.open(os.path.join(self.img_path, 'beeminder.png')), dark_image=Image.open(os.path.join(self.img_path, 'beeminder.png')), size=(60,60))
+            self.beeminder_img = customtkinter.CTkImage(light_image=Image.open(resource_path("img/beeminder.png")), dark_image=Image.open(resource_path("img/beeminder.png")), size=(60,60))
 
             # beeminder image label
             self.beeminder_logo = customtkinter.CTkLabel(self.frame, text="", image=self.beeminder_img)
@@ -311,9 +307,7 @@ class SettingsWindow(customtkinter.CTkToplevel):
         y = (screen_height - height) // 2
 
         # Set the geometry of the window
-        self.geometry(f'{width}x{height}+{x}+{y}')
-        # self.minsize(width, height)
-        # self.maxsize(width, height)   
+        self.geometry(f'{width}x{height}+{x}+{y}')  
 
     def center_window_editgoals(self, width=400, height=490):
         # Get the screen width and height
@@ -326,8 +320,6 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
         # Set the geometry of the window
         self.editgoals_window.geometry(f'{width}x{height}+{x}+{y}')
-        # self.minsize(width, height)
-        # self.maxsize(width, height)  
 
     def center_window_edittasks(self, width=400, height=490):
         # Get the screen width and height
@@ -340,46 +332,39 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
         # Set the geometry of the window
         self.task_editor_window.geometry(f'{width}x{height}+{x}+{y}')
-        # self.minsize(width, height)
-        # self.maxsize(width, height)  
 
     def on_quit_click(self):
         self.destroy()
 
     def on_closing(self):
-        self.withdraw()
+        os._exit(0)
 
     def on_dropdown_click(self, value):
         self.config['Settings']['appearance_mode'] = value
         customtkinter.set_appearance_mode(value)
-        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_sound_dropdown_click(self, value):
         self.config['Settings']['sound'] = (value + ".wav")
-        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_silent_ping_dropdown_click(self, value):
         self.config['Settings']['silent_ping'] = value
-        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_tagcolor_dropdown_click(self, value):
         self.config['Settings']['tag_color'] = value
         self.tagcolor_test_frame.configure(fg_color=value, border_color=value)
-        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_gap_dropdown_click(self, value):
         self.config['Settings']['gap'] = value
-        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             self.config.write(configfile)
-
-    # def minimize_window(self, hide=False):
-    #         print("minimizing window")
-    #         hwnd = windll.user32.GetParent(self.logwindow.winfo_id())
-    #         windll.user32.ShowWindow(hwnd, 0 if hide else 6)
 
     def process_log_file(self, log_file_path):
         # Regular expression to match the parts of the log entry
@@ -395,9 +380,6 @@ class SettingsWindow(customtkinter.CTkToplevel):
                 if match:
                     words_str = match.group(1).strip()  # Extract the words part
                     time_str = match.group(2).strip()  # Extract the time part
-
-                    # # Splitting the words part into a list
-                    # words_list = [word.strip() for word in words_str.split(',')]
 
                     # Store the extracted information in a dictionary
                     result = {
@@ -507,7 +489,7 @@ class SettingsWindow(customtkinter.CTkToplevel):
         self.bee_signout_button.pack(side="left", pady=5, padx=(5, 0))
 
     def on_config_save(self):
-        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def show_alert(self):
@@ -582,16 +564,9 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
             new_time = self.format_time(item["time"])
 
-            # if item["comments"] == "":
-            #     item["comments"] = "N/A"
-
             # tags label
             tags = customtkinter.CTkLabel(resultgrid1, text=item["words_list"], font=("Helvetica", 20))
             tags.pack(pady=25)
-
-            # # comments label
-            # comments = customtkinter.CTkLabel(resultgrid2, text=item["comments"])
-            # comments.pack()
 
             # time label
             time = customtkinter.CTkLabel(resultgrid3, text=new_time, font=("Helvetica", 20))
@@ -637,7 +612,6 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
         # Google Frame
         self.google_frame = customtkinter.CTkFrame(self.sign_in_frame, fg_color="transparent", width=400, height=50)
-        # self.google_frame.pack_propagate(0)
         self.google_frame.pack(fill="both")
 
         # Sign In Text
@@ -652,22 +626,27 @@ class SettingsWindow(customtkinter.CTkToplevel):
     def show_info_message(self, title, message):
         if platform.system() == 'Darwin':  # macOS
             # Use osascript to send a native macOS notification
-            os.system(f'''
-                    osascript -e 'display notification "{message}" with title "{title}"'
-            ''')
+            # os.system(f'''
+            #         osascript -e 'display notification "{message}" with title "{title}"'
+            # ''')
+            notification = Notify()
+            notification.title = title
+            notification.message = message
+            notification.application_name = "TagTime"
+
+            notification.send(block=False)
         else:
             notification = Notify()
             notification.title = title
             notification.message = message
             notification.application_name = "TagTime"
-            notification.icon = os.path.join(self.script_dir, "img", "tagtime.ico")
+            notification.icon = resource_path("img/tagtime.ico")
 
             notification.send(block=False)
 
     def display_beeminder_sign_in(self):
         # Beeminder Frame
         self.beeminder_frame = customtkinter.CTkFrame(self.bee_sign_in_frame, fg_color="transparent", height=40)
-        # self.beeminder_frame.pack_propagate(0)
         self.beeminder_frame.pack(fill="y")
 
         # Sign In Text
@@ -699,12 +678,11 @@ class SettingsWindow(customtkinter.CTkToplevel):
 
     def on_beeminder_editgoals(self):
         self.goals = beeminder.get_all_goals(self.auth_token)
-        print(self.goals)
         self.editgoals_window = customtkinter.CTkToplevel(self)
         if platform.system() == 'Darwin':
             self.wm_iconbitmap()
         else:
-            self.editgoals_window.after(250, lambda: self.editgoals_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+            self.editgoals_window.after(250, lambda: self.editgoals_window.iconbitmap(resource_path("img/tagtime.ico")))
         self.editgoals_window.title("Edit Goals")
         self.center_window_editgoals(400, 300)
         self.editgoals_window.attributes("-topmost", True)
@@ -721,10 +699,8 @@ class SettingsWindow(customtkinter.CTkToplevel):
         self.savegoal_button.pack(side="right", pady=5, padx=20)
 
         goal_tags = self.config['Beeminder']['goal_tags']
-        print(goal_tags, " goal tags")
         if goal_tags != "NULL":
             goal_tags_json = json.loads(goal_tags)
-            print(goal_tags_json)
 
         if self.goals:
             for goal in self.goals:
@@ -768,40 +744,12 @@ class SettingsWindow(customtkinter.CTkToplevel):
                 bottom_divider.pack_propagate(0)
                 bottom_divider.pack(fill="x")
 
-        
-
-        # replace text
-        # self.replace_text = customtkinter.CTkLabel(self.editgoals_window, text="Replace")
-        # self.replace_text.pack(pady=5)
-
-        # # tags replace box
-        # self.tagsreplacebox = customtkinter.CTkComboBox(self.editgoals_window, width=125, height=25, values=self.alltags, text_color=["black", "white"],
-        #                                                 border_width=0, corner_radius=0, fg_color=["white", "grey22"], button_color=["grey70", "grey26"], button_hover_color="grey35", bg_color="transparent")
-        # self.tagsreplacebox.set("")
-        # self.tagsreplacebox.pack()
-
-        # # with text
-        # self.replace_text = customtkinter.CTkLabel(self.editgoals_window, text="With", text_color=["black", "white"])
-        # self.replace_text.pack(pady=5)
-
-        # # replace entry box
-        # self.replace_entry = customtkinter.CTkEntry(self.editgoals_window, width=125, height=25, text_color=["black", "white"],
-        #                                                 border_width=0, corner_radius=0, fg_color=["white", "grey22"], bg_color="transparent")
-        # self.replace_entry.pack()
-
-        # # Replace Tags Button
-        # self.replace_button = customtkinter.CTkButton(self.editgoals_window, text="Replace Tags", width=100, command=self.on_replace_button, corner_radius=0,
-        #                                                 fg_color=["white", "grey22"], border_color=["grey70", "grey22"], border_width=2, text_color=["black", "white"], hover_color=["grey98", "grey35"])
-        # self.replace_button.pack(pady=20)
 
     def on_savegoal_button(self):
         self.goal_list = []
         self.tag_list = []
 
         self.loop_through_widgets(self.master_frame)
-
-        print(self.goal_list)
-        print(self.tag_list)
 
         goal_tags = {} 
         counter = 0
@@ -811,7 +759,6 @@ class SettingsWindow(customtkinter.CTkToplevel):
             goal_tags[goal] = self.tag_list[counter]
             counter += 1
 
-        print(goal_tags)
         self.config['Beeminder']['goal_tags'] = json.dumps(goal_tags)
         self.on_config_save()
         self.show_info_message("Success!", "Goal Tags Saved. Now anytime you use these tags, they will contribute to your goals!")
@@ -820,12 +767,10 @@ class SettingsWindow(customtkinter.CTkToplevel):
         # Get all child widgets of resultbox
         for widget in frame.winfo_children():
             if isinstance(widget, customtkinter.CTkLabel):
-                # Example: Print the text of CTkEntry widgets
                 newtext = widget.cget("text")
                 self.goal_list.append(newtext)
                 print(newtext)
             if isinstance(widget, customtkinter.CTkEntry):
-                # Example: Print the text of CTkEntry widgets
                 newtext = widget.get()
                 self.tag_list.append(newtext)
                 print(newtext)
@@ -837,7 +782,7 @@ class SettingsWindow(customtkinter.CTkToplevel):
         if platform.system() == 'Darwin':
             self.wm_iconbitmap()
         else:
-            self.task_editor_window.after(250, lambda: self.task_editor_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+            self.task_editor_window.after(250, lambda: self.task_editor_window.iconbitmap(resource_path("img/tagtime.ico")))
         self.task_editor_window.title("Edit Tasks")
         self.center_window_edittasks(400, 300)
         self.task_editor_window.attributes("-topmost", True)
@@ -854,10 +799,8 @@ class SettingsWindow(customtkinter.CTkToplevel):
         self.save_tasks_button.pack(side="right", pady=5, padx=20)
 
         task_tags = self.config['TaskEditor']['tasks']
-        print(task_tags, " task tags")
         if task_tags != "NULL":
             task_tags_json = json.loads(task_tags)
-            print(task_tags_json)
 
         for i in range(100):
             # column frame
@@ -927,12 +870,10 @@ class SettingsWindow(customtkinter.CTkToplevel):
         # Get all child widgets of resultbox
         for widget in frame.winfo_children():
             if isinstance(widget, customtkinter.CTkLabel):
-                # Example: Print the text of CTkEntry widgets
                 newtext = widget.cget("text")
                 self.task_list.append(newtext)
                 print(newtext)
             if isinstance(widget, customtkinter.CTkEntry):
-                # Example: Print the text of CTkEntry widgets
                 newtext = widget.get()
                 self.task_tag_list.append(newtext)
                 print(newtext)
