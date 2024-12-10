@@ -12,21 +12,20 @@ import platform
 import threading
 from notifypy import Notify
 
+def resource_path(relative_path):
+    """Get the absolute path to a resource in the same folder as the script."""
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), relative_path)
+
 class LogViewerWindow(customtkinter.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
 
-        # Get the directory of the current script
-        self.script_dir = os.path.dirname(os.path.realpath(__file__))
-
-        # set paths
-        self.img_path = os.path.join(self.script_dir, "img")
         self.log_menu()
 
     def log_menu(self):
                 
         self.config = configparser.ConfigParser()
-        self.config.read(os.path.join(self.script_dir, 'config.ini'))
+        self.config.read(resource_path('config.ini'))
         self.appearance_mode = self.config['Settings']['appearance_mode']
         
         customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
@@ -37,15 +36,12 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         self.font = customtkinter.CTkFont(family="Helvetica", size=12)
         if platform.system() == 'Darwin':
             self.wm_iconbitmap()
+            self.protocol("WM_DELETE_WINDOW", self.on_closing)
         else:
-            self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
-        # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
+            self.after(250, lambda: self.iconbitmap(resource_path("img/tagtime.ico")))
 
         self.attributes("-topmost", True)
         self.after(1000, lambda: self.attributes("-topmost", False))  # Disable topmost after 1 second
-
-        # self.logwindow.deiconify()
-        # self.minimize_window()
 
         # configure frame
         self.logframe = customtkinter.CTkFrame(master=self, corner_radius=0)
@@ -55,10 +51,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         self.topframe = customtkinter.CTkFrame(master=self.logframe, corner_radius=0, height=40, fg_color="transparent", width=850)
         self.topframe.pack_propagate(0)
         self.topframe.pack(pady=5)
-
-        # # Export Log from Cloud text
-        # self.cloudlog_text = customtkinter.CTkLabel(self.topframe, text="Export Log From Cloud: ")
-        # self.cloudlog_text.pack(pady=10, side="left")
 
         # Export Log from Cloud Button
         self.importlog_button = customtkinter.CTkButton(self.topframe, text="Import Log to Cloud", width=70, command=self.on_import_log, corner_radius=0,
@@ -136,7 +128,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         self.resultsframe = customtkinter.CTkScrollableFrame(master=self.logframe, width=800, height=600)
         self.resultsframe.pack()
 
-        self.log_file_path = os.path.join(self.script_dir, 'log.log')
+        self.log_file_path = resource_path('log.log')
         self.fillgraph = self.process_log_file()
         self.fillgraph.reverse()
         self.is_reversed = True
@@ -232,9 +224,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                     if '[' in words_str or ']' in words_str:
                         words_str = re.sub(r'\[.*?\]', '', words_str).strip()
                     time_str = match.group(3).strip() if match.group(3) else ''
-                    # print(unix_timestamp)
-                    # print(words_str)
-                    # print(time_str)
 
                     # Split the words into a list
                     words_list = re.findall(r'\(.*?\)|\S+', words_str)
@@ -245,12 +234,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                             pass
                         else:
                             pass
-                            # if tag not in current_tags:
-                            #     current_tags.append(tag)
-                            # if tag not in self.alltags:
-                            #     updated = True
-                            #     self.alltags.append(tag)
-                            #     new_tags.append(tag)
 
                     # Convert the timestamp to a datetime object
                     dt_object = datetime.fromtimestamp(unix_timestamp)
@@ -353,7 +336,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                 time = customtkinter.CTkLabel(resultgrid3, text=new_time, font=("Helvetica", 20))
                 time.pack(pady=15)
             else:
-                # print("100 tags reached")
 
                 # add 100 more frame
                 self.add100box = customtkinter.CTkButton(self.resultsframe, corner_radius=0, height=40, fg_color="transparent", text="Next 100 Tags", command=self.on_next100_button, font=("Helvetica", 20),
@@ -428,7 +410,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                 time = customtkinter.CTkLabel(resultgrid3, text=new_time, font=("Helvetica", 20))
                 time.pack(pady=15)
             else:
-                # print("100 tags reached")
 
                 # add 100 more frame
                 self.add100box = customtkinter.CTkButton(self.resultsframe, corner_radius=0, height=40, fg_color="transparent", text="Next 100 Tags", command=self.on_next100_button, font=("Helvetica", 20),
@@ -510,7 +491,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                 self.tag_graph_index += 1
 
             else:
-                # print("100 tags reached")
 
                 # add 100 more frame
                 self.add100box = customtkinter.CTkButton(self.resultsframe, corner_radius=0, height=40, fg_color="transparent", text="Next 100 Tags", command=self.on_next100sortedtags_button, font=("Helvetica", 20),
@@ -519,7 +499,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                 self.add100box.pack(fill="both")
 
                 count = 0
-                # print(self.tag_graph_index)
                 break
 
     def display_100more_taggraph(self, tag):
@@ -598,7 +577,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                 self.tag_graph_index += 1
 
             else:
-                # print("100 tags reached")
 
                 # add 100 more frame
                 self.add100box = customtkinter.CTkButton(self.resultsframe, corner_radius=0, height=40, fg_color="transparent", text="Next 100 Tags", command=self.on_next100sortedtags_button, font=("Helvetica", 20),
@@ -681,10 +659,8 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                     new_words = self.fillgraph[tag_index]['words_list']
                     weekly_border = int(time.time()) - 604800
                     if self.fillgraph[self.editorcount]['unix'] < weekly_border:
-                        # print("LOG IS OLDER THAN 7 DAYS")
                         pass
                     else:
-                        # print("WITHIN 7 DAYS! GOOD TO GO!")
                         result = {
                             'old_words': old_words,
                             'new_words': new_words,
@@ -695,8 +671,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
             elif isinstance(widget, customtkinter.CTkFrame):
                 self.loop_through_tag_widgets(widget)
 
-        # for i in range (len(self.fillgraph)):
-        #     print(self.fillgraph[i])
 
     def loop_through_widgets(self, frame):
         # Get all child widgets of resultbox
@@ -713,23 +687,17 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                     new_words = self.fillgraph[self.editorcount]['words_list']
                     weekly_border = int(time.time()) - 604800
                     if self.fillgraph[self.editorcount]['unix'] < weekly_border:
-                        # print("LOG IS OLDER THAN 7 DAYS")
                         pass
                     else:
-                        # print("WITHIN 7 DAYS! GOOD TO GO!")
                         result = {
                             'old_words': old_words,
                             'new_words': new_words,
                             'unix': self.fillgraph[self.editorcount]['unix']
                         }
                         self.updated_tags.append(result)
-                    # print(self.editorcount)
                 self.editorcount += 1
             elif isinstance(widget, customtkinter.CTkFrame):
                 self.loop_through_widgets(widget)
-
-        # for i in range (len(self.fillgraph)):
-        #     print(self.fillgraph[i])
 
     def save_edited_log(self):
         if self.is_reversed:
@@ -743,53 +711,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
             date_time_str = item['time']
             day_abbr = date_time_str[-3:]
             unix_timestamp = int(item['unix'])
-
-
-
-            # date_format = '%Y.%m.%d %H:%M:%S %a'
-
-            # cleaned_date_time_str = date_time_str.split(';')[0].strip()
-
-            # # Parse the date-time string into a datetime object
-            # try:
-            #     dt = datetime.strptime(cleaned_date_time_str, date_format)
-            # except ValueError as e:
-            #     print(e)
-            #     print("BAD BAD")
-            #     # Convert the timestamp to a datetime object
-            #     dt_object = datetime.fromtimestamp(unix_time)
-
-            #     # Format the datetime object to the desired format for date and time
-            #     current_time = dt_object.strftime("%Y.%m.%d %H:%M:%S")
-
-            #     # Get the current day from the timestamp
-            #     current_day = time.localtime(unix_time)
-
-            #     # Get the full name of the day
-            #     day = time.strftime("%A", current_day)
-
-            #     # Get the first three letters of the day in uppercase
-            #     day_abbr = day[:3].upper()
-
-            #     # Combine the formatted date and time with the day abbreviation
-            #     formatted_output = f"{current_time} {day_abbr}"
-            #     dt = datetime.strptime(formatted_output, date_format)
-            #     date_time_str = formatted_output
-
-
-            # # Convert the datetime object to a Unix timestamp
-            # unix_timestamp = int(dt.timestamp())
-
-
-
-            
-            # if len(tags) > 50:
-            #     new_formatted_tags = (tags[:len(tags)]).ljust(len(tags))
-            # else:
-            #     new_formatted_tags = (tags[:50]).ljust(50)
-
-            # log_entry = f'{unix_timestamp} {new_formatted_tags} [{date_time_str}]\n'
-
 
             if len(tags) > 50:
                 new_formatted_tags = (tags[:len(tags)]).ljust(len(tags))
@@ -887,8 +808,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
             with open(file_path, "r") as file:
                 file_contents = file.read()
 
-            # print(f"Selected file content: {file_contents}")
-
             # Replace the cloud log with the imported content
             url = "https://hello-bgfsl5zz5q-uc.a.run.app/import_cloud_log"
             update_response = requests.post(
@@ -903,7 +822,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
             if update_response.status_code == 200:
                 print("Success: Replaced cloud log with imported file.")
                 self.show_info_message("Success", "Cloud log successfully replaced with the imported file.")
-                og_file_path = os.path.join(self.script_dir, "log.log")
+                og_file_path = resource_path('log.log')
                 try:
                     # Write the file contents to the log file in the root directory
                     with open(og_file_path, "w") as file:
@@ -987,21 +906,27 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         self.on_search_tag(tag)
 
     def on_config_save(self):
-        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def show_info_message(self, title, message):
         if platform.system() == 'Darwin':  # macOS
             # Use osascript to send a native macOS notification
-            os.system(f'''
-                    osascript -e 'display notification "{message}" with title "{title}"'
-            ''')
+            # os.system(f'''
+            #         osascript -e 'display notification "{message}" with title "{title}"'
+            # ''')
+            notification = Notify()
+            notification.title = title
+            notification.message = message
+            notification.application_name = "TagTime"
+
+            notification.send(block=False)
         else:
             notification = Notify()
             notification.title = title
             notification.message = message
             notification.application_name = "TagTime"
-            notification.icon = os.path.join(self.script_dir, "img", "tagtime.ico")
+            notification.icon = resource_path("img/tagtime.ico")
 
             notification.send(block=False)
 
@@ -1025,11 +950,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         # Reset the scroll position to the top
         self.resultsframe._parent_canvas.yview_moveto(0)
 
-        # print(self.add100count)
-
         self.add100count -= 100
-
-        # print(self.add100count)
 
         if self.add100count == 0:
             self.display_fillgraph()
@@ -1059,11 +980,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         # Reset the scroll position to the top
         self.resultsframe._parent_canvas.yview_moveto(0)
 
-        # print(self.add100count)
-        # print(self.tag_graph_index)
-
         self.add100count -= 100
-        # print(self.previous_tag_list)
 
         if len(self.previous_tag_list) <= 1:
             self.previous_tag_index = 0
@@ -1071,9 +988,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
             self.previous_tag_list.pop()
             self.previous_tag_index = self.previous_tag_list[-1]
             self.tag_graph_index = self.previous_tag_index
-
-        # print(self.add100count)
-        # print(self.tag_graph_index)
 
         if self.add100count == 0:
             self.display_taggraph(self.sortedtag)
@@ -1174,7 +1088,7 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         if platform.system() == 'Darwin':
             self.wm_iconbitmap()
         else:
-            self.replace_window.after(250, lambda: self.replace_window.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+            self.replace_window.after(250, lambda: self.replace_window.iconbitmap(resource_path("img/tagtime.ico")))
         self.replace_window.title("Replace Tags")
         self.center_window_replace(300, 200)
         self.replace_window.attributes("-topmost", True)
@@ -1212,7 +1126,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         print("new tags: ", new_tag)
         changed = False
         if old_tag and new_tag:
-            # print(old_tag, new_tag)
             for item in self.fillgraph:
 
                 all_words = re.findall(r'\(.*?\)|\S+', item['words_list'])
@@ -1221,22 +1134,17 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                         pass
                     else:
                         if old_tag == words:
-                            # print(all_words)
                             index = all_words.index(words)
                             all_words[index] = new_tag
-                            # print(all_words, " after")
                             old_words = item['words_list']
                             item['words_list'] = ' '.join(all_words)
                             new_words = item['words_list']
-                            # print(item['words_list'], " after")
                             changed = True
 
                             weekly_border = int(time.time()) - 604800
                             if item['unix'] < weekly_border:
-                                # print("LOG IS OLDER THAN 7 DAYS")
                                 pass
                             else:
-                                # print("WITHIN 7 DAYS! GOOD TO GO!")
                                 result = {
                                     'old_words': old_words,
                                     'new_words': new_words,
@@ -1266,11 +1174,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                 # Reset the scroll position to the top
                 self.resultsframe._parent_canvas.yview_moveto(0)
 
-                # print(self.alltags)
-                # new_index = self.alltags.index(old_tag)
-                # if new_index:
-                #     self.alltags[new_index] = new_tag
-
                 # Reset combo boxes
                 self.tagsreplacebox.configure(values=self.alltags)
                 self.tagscombobox.configure(values=self.alltags)
@@ -1286,24 +1189,18 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         if auth_token != "NULL":
             goal_tags = self.config['Beeminder']['goal_tags']
             goal_tags_json = json.loads(goal_tags)
-            # print(self.updated_tags, " updated tags")
             for item in self.updated_tags:
                 tagtime_old_goals = []
                 tagtime_new_goals = []
-                # print(item['old_words'], " old words")
-                # print(item['new_words'], " new words")
-                # print(item['unix'], " timestamp")
                 cleaned_string = re.sub(r'\(.*?\)', '', item['old_words'])
 
                 # Strip extra spaces if needed
                 old_tags = cleaned_string.strip().split(' ')
-                # print(old_tags)
 
                 cleaned_string = re.sub(r'\(.*?\)', '', item['new_words'])
 
                 # Strip extra spaces if needed
                 new_tags = cleaned_string.strip().split(' ')
-                # print(new_tags)
 
                 for tag in old_tags:
                     if tag != '':
@@ -1375,7 +1272,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                         match += 1
                                         print(old_item['key'], " old item ", new_item['key'], " new item ", " is a match!")
                                         break
-                            # print(match)
                             if match == len(tagtime_old_goals):
                                 # Case 4
                                 for items in tagtime_new_goals:
@@ -1394,7 +1290,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                 continue
                             else:
                                 # Case 8
-                                # print("some beeminder tags are still the samee, but some are missing, and there are new ones, delete any missing ones, update others, create new")
                                 delete_tags = []
                                 update_tags = []
                                 create_tags = []
@@ -1417,7 +1312,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                             match += 1
                                             print(old_item['key'], " old item ", new_item['key'], " new item ", " is a match!")
                                             break
-                                    # print(match)
                                     if match == 0:
                                         create_tags.append(new_item)
 
@@ -1432,7 +1326,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                     beeminder.create_datapoint(auth_token, item['unix'], item['key'], item['tags'], gap_value)
                                 continue
                         else:
-                            # print("different goals for sure, calculate rest")
                             match = 0
                             for old_item in tagtime_old_goals:
                                 for new_item in tagtime_new_goals:
@@ -1462,7 +1355,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                             match += 1
                                             print(old_item['key'], " old item ", new_item['key'], " new item ", " is a match!")
                                             break
-                                    # print(match)
                                     if match == 0:
                                         create_tags.append(new_item)
 
@@ -1475,8 +1367,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                 continue
                             else:
                                 # Case 7, 8
-                                # print("some beeminder tags are still the samee, but some are missing, and there are new ones, delete any missing ones, update others, create new")
-                                # print("lengths dont add up")
                                 delete_tags = []
                                 update_tags = []
                                 create_tags = []
@@ -1499,7 +1389,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
                                             match += 1
                                             print(old_item['key'], " old item ", new_item['key'], " new item ", " is a match!")
                                             break
-                                    # print(match)
                                     if match == 0:
                                         create_tags.append(new_item)
 
@@ -1517,10 +1406,9 @@ class LogViewerWindow(customtkinter.CTkToplevel):
     def sync_cloud_log(self):
         refresh_token = self.config['Cloud']['refresh_token']
         if refresh_token == "NULL":
-            # self.show_info_message("Error", "Currently not signed in to Google.")
             return
         
-        file_path = os.path.join(self.script_dir, "log.log")
+        file_path = resource_path('log.log')
         
         try:
             # Ensure the file exists
@@ -1532,8 +1420,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
             # Read the content of the log.log file
             with open(file_path, "r") as file:
                 file_contents = file.read()
-
-            # print(f"Selected file content: {file_contents}")
 
             # Replace the cloud log with the imported content
             url = "https://hello-bgfsl5zz5q-uc.a.run.app/import_cloud_log"
@@ -1548,7 +1434,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
 
             if update_response.status_code == 200:
                 print("Success: Synced to Cloud Log.")
-                # self.show_info_message("Success", "Cloud log successfully replaced with the imported file.")
             else:
                 print("Error in replacing cloud log:", update_response.json())
                 self.show_info_message("Error", "Error replacing cloud log.")
@@ -1561,12 +1446,15 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         for widget in self.resultsframe.winfo_children():
             widget.destroy()
 
-        self.log_file_path = os.path.join(self.script_dir, 'log.log')
+        self.log_file_path = resource_path('log.log')
         self.fillgraph = self.process_log_file()
         self.fillgraph.reverse()
         self.is_reversed = True
 
         self.display_fillgraph()
+
+    def on_closing(self):
+        os._exit(0)
 
 def startup(parent):
     LogViewerWindow(parent)
