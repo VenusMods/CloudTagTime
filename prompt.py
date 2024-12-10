@@ -2,7 +2,6 @@ import os
 import customtkinter
 import threading
 import re
-import subprocess
 from datetime import datetime
 import configparser
 import time
@@ -16,6 +15,10 @@ import platform
 import math
 import multiprocessing
 
+def resource_path(relative_path):
+    """Get the absolute path to a resource in the same folder as the script."""
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), relative_path)
+
 class PromptWindow(customtkinter.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
@@ -25,23 +28,13 @@ class PromptWindow(customtkinter.CTkToplevel):
         self.auto_submit_timer = None
         self.auto_submit_time_limit = 60 * 1000  # 60 seconds in milliseconds
 
-        # Get the directory of the current script
-        self.script_dir = os.path.dirname(os.path.realpath(__file__))
-
         self.config = configparser.ConfigParser()
-        self.config.read(os.path.join(self.script_dir, 'config.ini'))
-        # print(self.config['Cloud']['refresh_token'], " refresh token")
-        # print(self.config['Beeminder']['auth_token'], " auth token")
-        # print(self.config['Beeminder']['goal_tags'], " goal tags")
-        # print(self.config['TaskEditor']['tasks'], " tasks")
+        self.config.read(resource_path('config.ini'))
         self.appearance_mode = self.config['Settings']['appearance_mode']
         silent_ping_option = self.config['Settings']['silent_ping']
 
         customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
         customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
-
-        # set paths
-        self.img_path = os.path.join(self.script_dir, "img")
 
         self.alltags = (self.config['Tags']['tags']).split(',')
 
@@ -51,11 +44,10 @@ class PromptWindow(customtkinter.CTkToplevel):
         self.tag_end_index = 0
 
         # configure window
-        # self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico'))
         if platform.system() == 'Darwin':
             self.wm_iconbitmap()
         else:
-            self.after(250, lambda: self.iconbitmap(os.path.join(self.img_path, 'tagtime.ico')))
+            self.after(250, lambda: self.iconbitmap(resource_path("img/tagtime.ico")))
         self.title("TagTime")
         self.center_window(400, 125)
         self.font = customtkinter.CTkFont(family="Helvetica", size=12)
@@ -65,39 +57,11 @@ class PromptWindow(customtkinter.CTkToplevel):
         self.after(1000, lambda: self.attributes("-topmost", False))  # Disable topmost after 1 second
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        self.sound_path = os.path.join(self.script_dir, "sounds")
         self.sound = self.config['Settings']['sound']
         if silent_ping_option == "True":
-            # print("silent ping is true, skipping sound")
             pass
         else:
-            # print("silent ping is not on, playing sound")
-            threading.Thread(target=playsound, args=(os.path.join(self.sound_path, self.sound),), daemon=True).start()
-
-        # self.overrideredirect(True)  # Remove the title bar
-        # self.focus_force()
-
-        # # Custom title bar frame
-        # title_bar1 = customtkinter.CTkFrame(self, height=30, corner_radius=0)
-        # title_bar1.pack(fill="x")
-
-        # # Title label
-        # title_label1 = customtkinter.CTkLabel(title_bar1, text="TagTime", font=self.font, text_color=["black", "white"])
-        # title_label1.pack(side="left", padx=10)
-
-        # # Close button
-        # close_button1 = customtkinter.CTkButton(title_bar1, text="X", font=("Impact", 18), width=30, command=self.destroy, text_color=["black", "white"], fg_color="transparent", hover_color="red", corner_radius=0)
-        # close_button1.pack(side="right")
-
-        # # Minimize button
-        # min_button1 = customtkinter.CTkButton(title_bar1, text="-", font=("Impact", 18), width=30, command=self.minimize_main_window, text_color=["black", "white"], fg_color="transparent", hover_color="orange", corner_radius=0)
-        # min_button1.pack(side="right")
-
-        # # Bind events for moving the window
-        # title_bar1.bind("<Button-1>", lambda event: self.start_move(event, self))
-        # title_bar1.bind("<B1-Motion>", lambda event: self.on_move(event, self))
-        # title_label1.bind("<Button-1>", lambda event: self.start_move(event, self))
-        # title_label1.bind("<B1-Motion>", lambda event: self.on_move(event, self))
+            threading.Thread(target=playsound, args=(resource_path(f"sounds/{self.sound}"),), daemon=True).start()
 
         # configure frame
         self.frame = customtkinter.CTkFrame(master=self, corner_radius=0)
@@ -114,62 +78,11 @@ class PromptWindow(customtkinter.CTkToplevel):
         self.taginput.pack(padx = 5)
         self.taginput.icursor(22)  # Set the cursor position
         self.taginput.bind("<Return>", self.on_enter_pressed_tag)
-        # self.taginput.bind("<KeyRelease>", self.update_listbox)
-        # self.taginput.bind("<BackSpace>", self.on_backspace_key)
-        # self.taginput.bind("<KeyRelease-space>", self.on_space_pressed_tag)
-        # self.taginput.bind("<KeyRelease-comma>", self.on_comma_pressed_tag)
         self.tagnumber = 0
         self.tagtotal = 0
         self.taginput.focus_force()
         self.previoustag = "VENUSBOT"
         self.from_space = False
-        # self.taginput.bind("<Down>", self.on_down_key)
-        # self.taginput.bind("<Tab>", self.on_tab_key)
-
-        # test box
-
-        # entry = tk.Entry(self.frame)
-        # entry.pack()
-        # entry.bind("<KeyRelease>", update_listbox)
-
-        # self.listboxframe = customtkinter.CTkFrame(self.listboxwindow, width=90, height = 40)
-        # self.listboxframe.pack_propagate(0)
-        # self.listboxframe.place(x=100, y=100)
-
-        # self.listbox = CTkListbox(self.listboxframe, width=80, height=35, scrollbar_button_color="red", border_color="black", border_width=0)
-        # self.listbox.place(x=0,y=0)
-        # self.listbox.bind("<Double-Button-1>", self.select_suggestion)
-        # self.listboxframe.place_forget()
-
-        # advanced_mode = self.str_to_bool(self.config['Settings']['advanced_mode']) # ur-ping, start of tagtime
-
-        # # comment input box
-        # self.commentinput = customtkinter.CTkTextbox(self.frame, width=350, height=150, border_color=["black", "grey"])
-        # self.commentinput.pack(pady = 15, padx = 5)
-        # self.commentinput.bind("<Return>", self.on_enter_pressed_comment)
-        # self.add_comment_placeholder("Comments...")
-
-        # if not advanced_mode:
-        #     self.commentinput.pack_forget()
-
-        # # tags list frame
-        # self.tagsframe = customtkinter.CTkFrame(self.frame, corner_radius=0, width=360, height=80, fg_color="transparent")
-        # self.tagsframe.pack_propagate(0)
-        # self.tagsframe.pack_forget()
-
-        # # tags list text box
-        # self.tagslist = customtkinter.CTkLabel(self.tagsframe, text=f"Tags:")
-        # self.tagslist.place(x=10, y=5)
-
-        # # tag frame 1
-        # self.tagframe1 = customtkinter.CTkFrame(self.tagsframe, corner_radius=15, width=310, height=30, fg_color="transparent", bg_color="transparent")
-        # self.tagframe1.pack_propagate(0)
-        # self.tagframe1.place(x=self.tagslist.winfo_reqwidth() + 45, y=5)
-
-        # # tag frame 2
-        # self.tagframe2 = customtkinter.CTkFrame(self.tagsframe, corner_radius=15, width=350, height=30, fg_color="transparent")
-        # self.tagframe2.pack_propagate(0)
-        # self.tagframe2.place(x=5, y=43)
 
         self.framelength = self.taginput.winfo_reqwidth()
         self.framelength_total = 0
@@ -196,16 +109,12 @@ class PromptWindow(customtkinter.CTkToplevel):
 
         self.swapcount = 0
 
-        # self.open_listbox()
-
         if silent_ping_option == "True":
-            # print("silent ping on")
             self.ping = "silent"
             self.withdraw()
             self.download_button_event()
             return
         else:
-            # print("silent ping not on")
             pass
 
         # Start the auto-submit timer
@@ -240,18 +149,14 @@ class PromptWindow(customtkinter.CTkToplevel):
 
         # Set the geometry of the window
         self.geometry(f'{width}x{height}+{x}+{y}')
-        # self.minsize(width, height)
-        # self.maxsize(width, height)
 
     def on_enter_pressed_tag(self, event=0):
         self.ping = self.taginput.get()
         if self.ping == "":
             self.run_logviewer()
-            # threading.Thread(target=self.run_logviewer, daemon=True).start()
             return
         elif self.ping == "?":
             self.run_settings()
-            # threading.Thread(target=self.run_settings, daemon=True).start()
             self.taginput.delete(0, customtkinter.END)
             return
         elif self.ping == '"':
@@ -267,50 +172,6 @@ class PromptWindow(customtkinter.CTkToplevel):
         else:
             self.download_button_event()
             return
-        # elif (self.taginput.get()).strip() == self.previoustag.strip():
-        #     self.download_button_event()
-        #     return
-        # elif '(' in self.taginput.get():
-        #     self.download_button_event()
-        #     return
-        
-        # if self.swapcount != 1:
-        #     # self.swap_frames(self.tagsframe, self.submitframe)
-        #     self.swapcount = 1
-        # tag = self.taginput.get()
-        # self.previoustag = tag
-        # self.taglength = len(tag)
-        # self.tagnumber += 1
-        # if self.tagnumber != 1:
-        #     tag = self.get_last_word(tag)
-        # self.tagList.append(tag)
-        
-        # # Measure the width of the tag text in pixels
-        # tag_width = self.font.measure(tag)
-
-        # total = tag_width + 25
-
-        # if self.framecount != 2:
-        #     # test tag frame
-        #     tagcolor = self.config['Settings']['tag_color']
-        #     newframe = customtkinter.CTkFrame(self.taginput, corner_radius=15, width=total, height=24, fg_color=tagcolor, border_color=tagcolor, border_width=1)
-        #     self.tagArray.append(newframe)
-        #     newframe.pack_propagate(0)
-        #     if self.tagnumber != 1:
-        #         newframe.place(x = self.framelength_total, y = 4)
-        #         self.framelength_total += total + 2
-        #     else:
-        #         newframe.place(x = 5, y = 4)
-        #         self.framelength_total += total + 7
-
-        #     # test tag frame text
-        #     newtext = customtkinter.CTkLabel(newframe, text=tag, font=self.font, text_color="white")
-        #     newtext.pack(pady = 1)
-
-        #     # self.minimize_window(hide=True)
-        #     self.tag_format(tag)
-        # else:
-        #     print("Max tags allowed!")
 
     def reset_input(self):
         self.taginput.delete(0, customtkinter.END)
@@ -326,21 +187,16 @@ class PromptWindow(customtkinter.CTkToplevel):
 
         # REPLACE TASK EDITOR TAGS
         task_tags = self.config['TaskEditor']['tasks']
-        # print(task_tags, " task tags")
         if task_tags != "NULL":
             task_tags_json = json.loads(task_tags)
-            # print(task_tags_json)
             for item in self.seperated_ping:
-                # print(item, " item from self.seperated_ping")
                 try:
                     if task_tags_json[f"{item}"] != "N/A":
                         original_text = task_tags_json[f"{item}"]
                         seperated_text = re.findall(pattern, original_text)
-                        # print(seperated_text, " seperated text")
                         index = self.seperated_ping.index(item)
                         counter = 0
                         for new_item in seperated_text:
-                            # print(new_item, " new_item")
                             if counter == 0:
                                 self.seperated_ping[index] = new_item
                             else:
@@ -352,34 +208,17 @@ class PromptWindow(customtkinter.CTkToplevel):
 
 
         self.beeminder_tags = self.seperated_ping[:]
-        # print(self.beeminder_tags, " BEEMINDER TAGS FROM DOWNLOAD EVENT")
         self.log_entries_to_file()
         self.beeminder_check()
-        self.destroy()
-
-    # def add_comment_placeholder(self, placeholder_text):
-    #     widget = self.commentinput
-    #     # Insert the placeholder text initially
-    #     widget.insert("1.0", placeholder_text)
-    #     widget.configure(text_color="grey")
-
-    #     def on_focus_in(event):
-    #         if widget.get("1.0", "end-1c") == placeholder_text:
-    #             widget.delete("1.0", "end")
-    #             widget.configure(text_color="white")
-
-    #     def on_focus_out(event):
-    #         if widget.get("1.0", "end-1c") == "":
-    #             widget.insert("1.0", placeholder_text)
-    #             widget.configure(text_color="grey")
-
-    #     widget.bind("<FocusIn>", on_focus_in)
-    #     widget.bind("<FocusOut>", on_focus_out)
+        if platform.system() == 'Darwin':
+            os._exit(0)
+        else:
+            self.destroy()
 
     def log_entries_to_file(self):
         
         # Define the log file path
-        log_file_path = os.path.join(self.script_dir, "log.log")
+        log_file_path = resource_path('log.log')
         
         # Get the current time for the log entry
         if (self.second_to_last_ping_time):
@@ -388,12 +227,10 @@ class PromptWindow(customtkinter.CTkToplevel):
             print("no second to last ping time")
             now = int(time.time())
 
-        # print("now: ", now)
         self.beeminder_time = now
 
         # format tags
         formatted_tags = ' '.join(self.seperated_ping)
-        # print(formatted_tags, " formatted tags")
 
         # Get the current time
         current_day = time.localtime()
@@ -407,57 +244,42 @@ class PromptWindow(customtkinter.CTkToplevel):
         if len(formatted_tags) > 50:
             new_formatted_tags = (formatted_tags[:len(formatted_tags)]).ljust(len(formatted_tags))
             if len(formatted_tags) < 56:
-                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 55 - len(formatted_tags)
-                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%m.%d %H:%M:%S")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time} {day_abbr}]\n'
             elif len(formatted_tags) < 60:
-                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 59 - len(formatted_tags)
-                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%m.%d %H:%M:%S")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
             elif len(formatted_tags) < 63:
-                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 62 - len(formatted_tags)
-                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%m.%d %H:%M")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
-                # print("THIS IS IT")
-                # print(current_time)
-                # print(log_entry)
             elif len(formatted_tags) < 66:
-                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 65 - len(formatted_tags)
-                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%d %H:%M")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
             elif len(formatted_tags) < 69:
-                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 68 - len(formatted_tags)
-                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%H:%M")
                 for i in range(spaces):
                     new_formatted_tags += ' '
                 # Format the log entry
                 log_entry = f'{now} {new_formatted_tags} [{current_time}]\n'
             elif len(formatted_tags) < 72:
-                # print(len(formatted_tags), " len of formatted tags")
                 spaces = 71 - len(formatted_tags)
-                # print(spaces, " spaces")
                 current_time = datetime.now().strftime("%M")
                 for i in range(spaces):
                     new_formatted_tags += ' '
@@ -497,87 +319,6 @@ class PromptWindow(customtkinter.CTkToplevel):
 
     def str_to_bool(self, value):
         return value.lower() in ("yes", "true", "t", "1")
-    
-    # def open_listbox(self):
-    #     self.listboxwindow = customtkinter.CTkToplevel(self.frame)
-    #     self.listboxwindow.overrideredirect(True)
-    #     self.listboxwindow.attributes("-topmost", True)
-    #     self.center_window_listbox(90, 50)
-
-    #     self.listboxframe = customtkinter.CTkFrame(self.listboxwindow, width=90, height = 100)
-    #     self.listboxframe.pack_propagate(0)
-    #     self.listboxframe.place(x=0, y=0)
-
-    #     self.listbox = CTkListbox(self.listboxframe, width=80, height=100, scrollbar_button_color="red", border_color="black", border_width=0)
-    #     self.listbox.place(x=0,y=0)
-    #     self.listboxframe.place(x=0, y=0)
-    #     self.listboxwindow.withdraw()
-
-    # def center_window_listbox(self, width=400, height=490):
-    #     # Get the main window position
-    #     main_window_x = self.winfo_x()
-    #     main_window_y = self.winfo_y()
-
-    #     # Get the main window dimensions
-    #     main_window_width = self.winfo_width()
-    #     main_window_height = self.winfo_height()
-
-    #     # Calculate the position for the listbox window to be centered within the main window
-    #     x = main_window_x + (main_window_width - width) // 2
-    #     y = main_window_y + (main_window_height - self.listboxwindow.winfo_height()) // 2
-
-    #     # Set the geometry of the listbox window
-    #     self.listboxwindow.geometry(f'{width}x{height}+{x-125}+{y+60}')
-    #     # self.minsize(width, height)
-    #     # self.maxsize(width, height)
-
-    # def start_move(self, event, window):
-    #         window.x = event.x
-    #         window.y = event.y
-
-    # def on_move(self, event, window):
-    #     x = event.x_root - window.x
-    #     y = event.y_root - window.y
-    #     window.geometry(f"+{x}+{y}")
-    #     if self.is_listbox_window_open():
-    #         self.listboxwindow.geometry(f"+{x + 30}+{y + 90}")
-    #     else:
-    #         pass
-
-    # def minimize_window(self, hide=False):
-    #         print("minimizing window")
-    #         hwnd = windll.user32.GetParent(self.listboxwindow.winfo_id())
-    #         windll.user32.ShowWindow(hwnd, 0 if hide else 6)
-
-    # def minimize_main_window(self, hide=False):
-    #         print("minimizing window")
-    #         hwnd = windll.user32.GetParent(self.winfo_id())
-    #         windll.user32.ShowWindow(hwnd, 0 if hide else 6)
-
-    # def get_position(self):
-    #     x = self.winfo_x()
-    #     y = self.winfo_y()
-    #     # print(f"Window position: x={x}, y={y}")
-
-    # def is_listbox_window_open(self):
-    #     if self.listboxwindow is not None:
-    #         return self.listboxwindow.state() == "normal"
-    #     return False
-    
-    # def on_down_key(self, event):
-    #     print("hello")
-    #     self.listbox.activate(0)
-
-    # def on_tab_key(self, event):
-    #     print("hello")
-    #     self.listbox.activate(0)
-
-    # def on_listbox_click(self, event):
-        # Inserts the selected suggestion into the entry.
-        # self.taginput.delete(0, customtkinter.END)
-        # self.taginput.insert(0, self.listbox.get())
-        # self.minimize_window(hide=True)
-        # self.on_enter_pressed_tag(event)
 
     def tag_format(self, tag):
         length = len(tag)
@@ -628,7 +369,6 @@ class PromptWindow(customtkinter.CTkToplevel):
     
     def on_backspace_key(self, event):
         index = self.get_tag_index()
-        # print(index)
         if index <= 1:
 
             if self.tagArray:
@@ -648,7 +388,7 @@ class PromptWindow(customtkinter.CTkToplevel):
             self.remove_frame()
 
     def on_config_save(self):
-        with open(os.path.join(self.script_dir, 'config.ini'), 'w') as configfile:
+        with open(resource_path('config.ini'), 'w') as configfile:
             self.config.write(configfile)
 
     def on_space_pressed_tag(self, event):
@@ -657,13 +397,11 @@ class PromptWindow(customtkinter.CTkToplevel):
         current_text = self.taginput.get()[:cursor_position]
 
         if '(' in current_text:
-            # print("currently a comment.")
             pass
         else:
             # Remove the last character (space) from the entry
             current_text = self.taginput.get()
             if current_text.endswith(' '):
-                # print("ends in space")
                 self.taginput.delete(len(current_text)-1, len(current_text))
             self.on_enter_pressed_tag(event)
 
@@ -673,7 +411,6 @@ class PromptWindow(customtkinter.CTkToplevel):
         current_text = self.taginput.get()[:cursor_position]
 
         if '(' in current_text:
-            # print("currently a comment.")
             pass
         else:
             # Remove the last character (comma) from the entry
@@ -684,23 +421,9 @@ class PromptWindow(customtkinter.CTkToplevel):
 
     def run_settings(self):
         multiprocessing.Process(target=settings.main).start()
-        # settings.SettingsWindow(self.parent)
-        # try:
-        #     # Start the process without waiting for it to complete
-        #     subprocess.Popen(['python', os.path.join(self.script_dir, 'settings.py')])
-
-        # except Exception as e:
-        #     print(f"An error occurred: {e}")
 
     def run_logviewer(self):
         multiprocessing.Process(target=logviewer.main).start()
-        # logviewer.LogViewerWindow(self.parent)
-        # try:
-        #     # Start the process without waiting for it to complete
-        #     subprocess.Popen(['python', os.path.join(self.script_dir, 'logviewer.py')])
-
-        # except Exception as e:
-        #     print(f"An error occurred: {e}")
 
     def on_sync_log(self):
         refresh_token = self.config['Cloud']['refresh_token']
@@ -718,7 +441,7 @@ class PromptWindow(customtkinter.CTkToplevel):
                 file_contents = update_data['file_content']
                 print("Success: Grabbed Log from Cloud")
 
-                file_path = os.path.join(self.script_dir, "log.log")
+                file_path = resource_path('log.log')
 
                 try:
                     # Write the file contents to the log file in the root directory
@@ -736,9 +459,6 @@ class PromptWindow(customtkinter.CTkToplevel):
         new_url = "https://hello-bgfsl5zz5q-uc.a.run.app/update_cloud_log"
         refresh_token = self.config['Cloud']['refresh_token']
 
-        # with open(file_path, 'r') as file:
-        #     log_content = file.read()
-
         # Read the latest line from the file
         latest_line = ""
         with open(file_path, 'r') as file:
@@ -749,16 +469,7 @@ class PromptWindow(customtkinter.CTkToplevel):
 
         # If no lines are found, exit the function early
         if not latest_line:
-            # print("Log file is empty, no updates to send.")
             return
-        
-        # print(latest_line, " latest line")
-
-        # # Use a regular expression to replace the leading numbers with a test string
-        # new_timestamp = "1731149999"  # Test string
-        # modified_line = re.sub(r"^\d+", new_timestamp, latest_line)
-
-        # print(modified_line, " modified line")
 
         update_response = requests.post(
             new_url,
@@ -774,23 +485,8 @@ class PromptWindow(customtkinter.CTkToplevel):
         else:
             print("Error in updating cloud log:", update_response.json())
 
-        # update_response = requests.post(
-        #     new_url,
-        #     json={
-        #         'refresh_token': refresh_token,
-        #         'new_log_entry': os.path.basename(file_path),
-        #         'file_content': latest_line
-        #     }
-        # )
-
-        # if update_response.status_code == 200:
-        #     update_data = update_response.json()
-        #     print("Success:", update_data['message'])
-        # else:
-        #     print("Error in updating cloud log:", update_response.json())
-
     def copy_tags_from_last_log_entry(self):
-        log_file_path = os.path.join(self.script_dir, "log.log")
+        log_file_path = resource_path('log.log')
 
         # Read the last line of the log file
         try:
@@ -819,7 +515,6 @@ class PromptWindow(customtkinter.CTkToplevel):
             goal_tags_json = json.loads(goal_tags)
             for tag in self.beeminder_tags:
                 if '(' in tag or ')' in tag:
-                    # print(tag, " has a comment!")
                     pass
                 else:
                     for key, value in goal_tags_json.items():
@@ -842,10 +537,8 @@ class PromptWindow(customtkinter.CTkToplevel):
         # Check if there is a match and print the result
         if match:
             content = match.group(1)  # Extract the content inside parentheses
-            # print(content)
             return content
         else:
-            # print("No parentheses found")
             content = ''
             return content
         
@@ -901,18 +594,11 @@ class PromptWindow(customtkinter.CTkToplevel):
         last_ping_time = URPING1
         second_to_last_ping_time = None  # Variable to hold the second-to-last value
 
-        # print("now in determine ping time: ", now)
-
         while now > last_ping_time:
             second_to_last_ping_time = last_ping_time  # Store the current value as the previous
             last_ping_time = next_ping_time(last_ping_time, GAP1)
 
-        # print("Second-to-last ping time: ", second_to_last_ping_time)
-
         self.second_to_last_ping_time = second_to_last_ping_time
-
-        # return second_to_last_ping_time
-
         
 def startup(parent):
     PromptWindow(parent)
