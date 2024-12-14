@@ -1,4 +1,7 @@
+<img src="https://github.com/user-attachments/assets/d675c706-a1c5-4dfb-bdc9-14ddd3843fd3" alt="tagtime" width="300">
+
 # CloudTagTime
+
 "To determine how you spend your time, TagTime literally randomly samples you. At random times it pops up and asks what you're doing right at that moment. You answer with tags."
 
 ![image](https://github.com/user-attachments/assets/b95860b8-7cf4-44ab-9dd5-1f2027ce548e)
