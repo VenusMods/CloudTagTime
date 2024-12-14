@@ -13,6 +13,7 @@ import settings
 import logviewer
 import platform
 import multiprocessing
+import requests
 from notifypy import Notify
 
 class GapChangedException(Exception):
@@ -101,6 +102,7 @@ async def catch_up(now, start_time, last_ping_time, gap):
         count += 1
 
     count = 0
+    log_entries = []
 
     while (now > start_time):
         # Get the current timestamp
@@ -132,10 +134,16 @@ async def catch_up(now, start_time, last_ping_time, gap):
             # Write to the log file
             with open(log_file_path, "a") as log_file:
                 log_file.write(log_entry)
+            log_entries.append(log_entry)
         else:
             count -= 1
 
     print(f"you missed {count} pings!")
+
+    # Combine the log entries into one big string and send to cloud
+    combined_log = ''.join(log_entries)
+    update_cloud_log(combined_log.rstrip('\n'))
+
     return start_time
 
 async def loop_time(new_ping_time, now):
@@ -210,6 +218,40 @@ async def tagtime_pings(start_time):
             now = int(time.time())
             new_ping_time = await first_time_check(now, start_time, gap)
             on_config_save(str(int(new_ping_time)))
+
+def update_cloud_log(new_log_entry):
+    new_url = "https://hello-bgfsl5zz5q-uc.a.run.app/update_cloud_log"
+    refresh_token = config['Cloud']['refresh_token']
+
+    if refresh_token == "NULL":
+        return
+
+    update_response = requests.post(
+        new_url,
+        json={
+            'refresh_token': refresh_token,
+            'new_log_entry': new_log_entry
+        }
+    )
+
+    if update_response.status_code == 200:
+        update_data = update_response.json()
+        print("Success:", update_data['message'])
+        file_contents = update_data['updated_log_content']
+        print("Success: Grabbed Log from Cloud")
+
+        file_path = resource_path('log.log')
+
+        try:
+            # Write the file contents to the log file in the root directory
+            with open(file_path, "w") as file:
+                file.write(file_contents)
+            print(f"Log file updated: {file_path}")
+        except Exception as e:
+            print(f"Error writing to log file: {e}")
+
+    else:
+        print("Error in updating cloud log:", update_response.json())
 
 def run_settings():
     multiprocessing.Process(target=settings.main).start()
