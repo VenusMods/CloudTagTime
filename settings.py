@@ -139,9 +139,6 @@ class SettingsWindow(customtkinter.CTkToplevel):
             self.config.read(resource_path('config.ini'))
             self.appearance_mode = self.config['Settings']['appearance_mode']
 
-            customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
-            customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
-
             # get refresh token
             self.refresh_token = self.config['Cloud']['refresh_token']
 
@@ -885,6 +882,11 @@ def startup(parent):
     SettingsWindow(parent)
 
 def main():
+    config = configparser.ConfigParser()
+    config.read(resource_path('config.ini'))
+    appearance_mode = config['Settings']['appearance_mode']
+    customtkinter.set_appearance_mode(appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
+    customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
     print("starting settings")
     root = customtkinter.CTk()  # Create the main window
     root.withdraw()  # Hide the main window since we are only using Toplevels
@@ -892,6 +894,11 @@ def main():
     root.mainloop()
             
 if __name__ == "__main__":
+    config = configparser.ConfigParser()
+    config.read(resource_path('config.ini'))
+    appearance_mode = config['Settings']['appearance_mode']
+    customtkinter.set_appearance_mode(appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
+    customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
     root = customtkinter.CTk()  # Create the main window
     root.withdraw()  # Hide the main window since we are only using Toplevels
     startup(root)
