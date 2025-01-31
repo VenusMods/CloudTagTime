@@ -27,9 +27,6 @@ class LogViewerWindow(customtkinter.CTkToplevel):
         self.config = configparser.ConfigParser()
         self.config.read(resource_path('config.ini'))
         self.appearance_mode = self.config['Settings']['appearance_mode']
-        
-        customtkinter.set_appearance_mode(self.appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
-        customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
 
         self.title("Log Viewer/Editor")
         self.center_window(900, 750)
@@ -1460,12 +1457,22 @@ def startup(parent):
     LogViewerWindow(parent)
 
 def main():
+    config = configparser.ConfigParser()
+    config.read(resource_path('config.ini'))
+    appearance_mode = config['Settings']['appearance_mode']
+    customtkinter.set_appearance_mode(appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
+    customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
     root = customtkinter.CTk()  # Create the main window
     root.withdraw()  # Hide the main window since we are only using Toplevels
     startup(root)
     root.mainloop()
 
 if __name__ == "__main__":
+    config = configparser.ConfigParser()
+    config.read(resource_path('config.ini'))
+    appearance_mode = config['Settings']['appearance_mode']
+    customtkinter.set_appearance_mode(appearance_mode)  # Modes: "System" (standard), "Dark", "Light"
+    customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue")
     root = customtkinter.CTk()  # Create the main window
     root.withdraw()  # Hide the main window since we are only using Toplevels
     startup(root)
