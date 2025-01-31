@@ -161,7 +161,7 @@ async def loop_time(new_ping_time, now):
             gap = new_gap
             raise GapChangedException
 
-def show_info_message(self, title, message):
+def show_info_message(title, message):
     if platform.system() == 'Darwin':  # macOS
         # Use osascript to send a native macOS notification
         # os.system(f'''
